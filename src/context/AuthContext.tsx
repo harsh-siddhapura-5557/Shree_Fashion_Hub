@@ -14,6 +14,7 @@ interface AuthContextType {
   requestPhoneOtp: (phone: string, name?: string, email?: string) => Promise<{ success: boolean; message: string; cooldownSeconds?: number; debugOtp?: string; token?: string; smsDelivered?: boolean; smsProvider?: string }>;
   verifyPhoneOtp: (phone: string, otp: string, token?: string, name?: string, email?: string) => Promise<{ success: boolean; message: string }>;
   loginWithSocial: (provider: 'google' | 'apple', details?: { name?: string; email?: string }) => Promise<{ success: boolean; message?: string }>;
+  setDirectSession: (session: UserSession) => void;
   logout: () => void;
 }
 
@@ -120,6 +121,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setDirectSession = (session: UserSession) => {
+    setUser(session);
+    try {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    } catch (err) {
+      console.error('Failed saving session:', err);
+    }
+    setIsAuthModalOpen(false);
+    if (postAuthRedirectAction) {
+      postAuthRedirectAction();
+      setPostAuthRedirectAction(null);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -138,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestPhoneOtp,
         verifyPhoneOtp,
         loginWithSocial,
+        setDirectSession,
         logout
       }}
     >

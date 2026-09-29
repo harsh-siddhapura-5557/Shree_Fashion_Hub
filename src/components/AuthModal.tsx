@@ -18,11 +18,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
+import { isFirebaseConfigured, auth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from '@/lib/firebase';
 
 const DEFAULT_GOOGLE_CLIENT_ID = '968681730725-4mnth4b1v2hl9as446dd77jibns4h75r.apps.googleusercontent.com';
 
 export function AuthModal() {
-  const { isAuthModalOpen, closeAuthModal, requestPhoneOtp, verifyPhoneOtp, loginWithSocial } = useAuth();
+  const { isAuthModalOpen, closeAuthModal, requestPhoneOtp, verifyPhoneOtp, loginWithSocial, setDirectSession } = useAuth();
   
   // Auth Form State
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
@@ -39,6 +40,7 @@ export function AuthModal() {
   const [debugOtp, setDebugOtp] = useState<string | null>(null);
   const [otpToken, setOtpToken] = useState<string>('');
   const [realSmsSent, setRealSmsSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // Real Google OAuth & Social Login state
   const [googleClientIdInput, setGoogleClientIdInput] = useState('');
@@ -127,6 +129,37 @@ export function AuthModal() {
     }
 
     setIsLoading(true);
+
+    // 1. If Firebase Phone Auth is configured, use Google's Free Phone SMS!
+    if (isFirebaseConfigured && auth && typeof window !== 'undefined') {
+      try {
+        if (!(window as any).recaptchaVerifier) {
+          (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'firebase-recaptcha-container', {
+            size: 'invisible'
+          });
+        }
+        const appVerifier = (window as any).recaptchaVerifier;
+        const confirmation = await signInWithPhoneNumber(auth, `+91${cleanedPhone}`, appVerifier);
+        setConfirmationResult(confirmation);
+        setStep('enter_otp');
+        setSuccessMessage(`Google SMS sent to +91 ${cleanedPhone}`);
+        setRealSmsSent(true);
+        setCooldown(45);
+        setOtp('');
+        setIsLoading(false);
+        return;
+      } catch (fbErr: any) {
+        console.error('Firebase Phone Auth error:', fbErr);
+        // Fall back to server OTP if Firebase fails
+        if (fbErr.code === 'auth/billing-not-enabled' || fbErr.code === 'auth/captcha-check-failed') {
+          setErrorMessage(fbErr.message || 'Google SMS verification failed. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+      }
+    }
+
+    // 2. Server API route fallback
     const result = await requestPhoneOtp(cleanedPhone, customerName.trim(), customerEmail.trim());
     setIsLoading(false);
 
@@ -138,7 +171,6 @@ export function AuthModal() {
       setDebugOtp(code);
       if (result.token) setOtpToken(result.token);
       setRealSmsSent(!!result.smsDelivered);
-      // Keep input empty so user enters the OTP received on their phone
       setOtp('');
     } else {
       setErrorMessage(result.message || 'Failed to send OTP');
@@ -155,6 +187,31 @@ export function AuthModal() {
     }
 
     setIsLoading(true);
+
+    // 1. If confirmationResult exists from Firebase, verify with Google
+    if (confirmationResult) {
+      try {
+        const credential = await confirmationResult.confirm(otp.trim());
+        const fbUser = credential.user;
+        setDirectSession({
+          id: fbUser.uid,
+          name: customerName.trim() || 'Valued Customer',
+          phone: fbUser.phoneNumber || `+91${cleanedPhone}`,
+          email: customerEmail.trim() || undefined,
+          authProvider: 'phone_otp',
+          role: 'customer'
+        });
+        setIsLoading(false);
+        return;
+      } catch (err: any) {
+        console.error('Firebase confirmation error:', err);
+        setErrorMessage('Invalid 6-digit code entered. Please check your SMS.');
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // 2. Server API route fallback
     const result = await verifyPhoneOtp(
       cleanedPhone, 
       otp.trim(), 
@@ -415,6 +472,7 @@ export function AuthModal() {
 
         {/* Modal Form Body */}
         <div className="p-6 pt-3 space-y-4">
+          <div id="firebase-recaptcha-container"></div>
           
           {/* Error Message */}
           {errorMessage && (
