@@ -289,7 +289,6 @@ export async function sendOtpEmail(
         <!-- Footer -->
         <div style="background-color: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 12px;">
           <p style="margin: 0; font-weight: 600; color: #64748b;">Shree Fashion Hub • Authentic Denim House</p>
-          <p style="margin: 4px 0 0 0;">WhatsApp Support: +91 97144 75575</p>
         </div>
 
       </div>
