@@ -7,8 +7,8 @@ import { Order } from '@/types';
 function getTransporter() {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const port = Number(process.env.SMTP_PORT) || 465;
-  const user = process.env.SMTP_USER || '';
-  const pass = process.env.SMTP_PASS || '';
+  const user = process.env.SMTP_USER || 'localworkuse24@gmail.com';
+  const pass = process.env.SMTP_PASS || 'qqhrwpjixbhpzwzy';
 
   if (user && pass) {
     if (host.includes('gmail.com')) {
@@ -30,8 +30,8 @@ function getTransporter() {
 }
 
 export async function sendOrderNotifications(order: Order) {
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@shreefashionhub.com';
-  const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <orders@shreefashionhub.com>';
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'harshsiddhapura5557@gmail.com';
+  const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <localworkuse24@gmail.com>';
 
   const itemsHtml = order.items
     .map(
@@ -232,7 +232,7 @@ export async function sendOtpEmail(
   otp: string, 
   customerName?: string
 ): Promise<{ success: boolean; delivered: boolean; error?: string }> {
-  const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <auth@shreefashionhub.com>';
+  const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <localworkuse24@gmail.com>';
   const name = customerName?.trim() || 'Valued Customer';
 
   const otpHtml = `

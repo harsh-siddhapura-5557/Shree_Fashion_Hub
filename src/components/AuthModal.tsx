@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
-import { isFirebaseConfigured, auth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from '@/lib/firebase';
 
 const DEFAULT_GOOGLE_CLIENT_ID = '968681730725-4mnth4b1v2hl9as446dd77jibns4h75r.apps.googleusercontent.com';
 
@@ -42,7 +41,6 @@ export function AuthModal() {
   const [debugOtp, setDebugOtp] = useState<string | null>(null);
   const [otpToken, setOtpToken] = useState<string>('');
   const [realSmsSent, setRealSmsSent] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // Real Google OAuth & Social Login state
   const [googleClientIdInput, setGoogleClientIdInput] = useState('');
@@ -467,7 +465,6 @@ export function AuthModal() {
 
         {/* Modal Form Body */}
         <div className="p-6 pt-3 space-y-4">
-          <div id="firebase-recaptcha-container"></div>
           
           {/* Error Message */}
           {errorMessage && (
@@ -499,7 +496,7 @@ export function AuthModal() {
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
                 {customerEmail.trim()
-                  ? `Please check your email inbox at ${customerEmail.trim()} for your 6-digit verification code.`
+                  ? `Please check your email inbox (or Spam/Junk folder) at ${customerEmail.trim()} for your 6-digit code.`
                   : `Please check your phone text messages for your 6-digit verification code.`}
               </p>
             </div>
