@@ -27,9 +27,13 @@ setInterval(() => {
 }, 60000);
 
 export function isValidIndianPhone(phone: string): boolean {
+  if (!phone) return false;
   const digits = phone.replace(/\D/g, '');
   if (digits.length === 10) {
     return /^[6-9]\d{9}$/.test(digits);
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return /^[6-9]\d{9}$/.test(digits.slice(1));
   }
   if (digits.length === 12 && digits.startsWith('91')) {
     return /^[6-9]\d{9}$/.test(digits.slice(2));

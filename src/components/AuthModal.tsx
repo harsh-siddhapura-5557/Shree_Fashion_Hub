@@ -138,8 +138,8 @@ export function AuthModal() {
       setDebugOtp(code);
       if (result.token) setOtpToken(result.token);
       setRealSmsSent(!!result.smsDelivered);
-      // Pre-fill code for instant testing
-      setOtp(code);
+      // Keep input empty so user enters the OTP received on their phone
+      setOtp('');
     } else {
       setErrorMessage(result.message || 'Failed to send OTP');
     }
@@ -465,19 +465,6 @@ export function AuthModal() {
                 </div>
               )}
 
-              {/* Developer / Client Testing Helper (Discreet fallback so testing is never blocked) */}
-              <div className="pt-0.5 flex items-center justify-between px-1">
-                <span className="text-[10px] text-slate-400 font-medium">
-                  Testing bypass: <code className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono font-bold">556677</code>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setOtp(debugOtp || '556677')}
-                  className="text-[11px] font-bold text-[#1E3A8A] hover:underline flex items-center gap-1"
-                >
-                  ⚡ Auto-Fill Test OTP
-                </button>
-              </div>
             </div>
           )}
 
@@ -496,7 +483,7 @@ export function AuthModal() {
                       <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                       <input
                         type="text"
-                        placeholder="e.g. Harsh Siddhapura"
+                        placeholder="e.g. Rahul Sharma"
                         value={customerName}
                         onChange={e => setCustomerName(e.target.value)}
                         required
@@ -733,7 +720,7 @@ export function AuthModal() {
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
-                      placeholder="e.g. Harsh Siddhapura"
+                      placeholder="e.g. Rahul Sharma"
                       value={googleNameInput}
                       onChange={e => setGoogleNameInput(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"

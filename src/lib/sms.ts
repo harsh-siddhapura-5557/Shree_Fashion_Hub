@@ -92,6 +92,60 @@ export async function sendRealPhoneOtp(phone: string, otp: string): Promise<Send
   // Default fallback: No SMS gateway API key configured yet in environment
   return {
     success: false,
-    message: 'No SMS gateway key configured. Simulating SMS code on screen.'
+    message: 'SMS service simulated.'
   };
 }
+
+export async function sendOrderSmsNotification(
+  customerPhone: string,
+  orderNumber: string,
+  totalAmount: number,
+  customerName: string
+): Promise<void> {
+  const digits = customerPhone.replace(/\D/g, '').slice(-10);
+  const fast2SmsKey = process.env.FAST2SMS_API_KEY || '2LsZBkaiWR3rfUA6pXlGcSvJ9nw8IydhzT5bg17ueqxNCKEm0o94Ag7k5Zup3cY1SRv0lw6XQBjWrUta';
+  
+  const customerMsg = `Shree Fashion Hub: Order #${orderNumber} confirmed! Amount: Rs.${totalAmount}. Note: Unboxing video required for returns. Thank you!`;
+  const adminMsg = `[NEW ORDER] #${orderNumber} by ${customerName} for Rs.${totalAmount}. Check Admin Panel!`;
+  const adminPhone = '9714475575';
+
+  if (fast2SmsKey) {
+    try {
+      // Send to Customer
+      await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'authorization': fast2SmsKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          route: 'q',
+          message: customerMsg,
+          language: 'english',
+          flash: 0,
+          numbers: digits
+        })
+      });
+
+      // Send to Admin
+      await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'authorization': fast2SmsKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          route: 'q',
+          message: adminMsg,
+          language: 'english',
+          flash: 0,
+          numbers: adminPhone
+        })
+      });
+      console.log(`[ORDER SMS DISPATCHED] Order: ${orderNumber} to ${digits} & Admin: ${adminPhone}`);
+    } catch (e) {
+      console.warn('[ORDER SMS] Failed sending order SMS:', e);
+    }
+  }
+}
+

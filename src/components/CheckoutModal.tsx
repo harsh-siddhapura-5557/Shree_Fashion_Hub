@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { X, ShieldAlert, CheckCircle, ArrowRight, RefreshCw, Smartphone, QrCode, Copy, Check, Sparkles, ExternalLink } from 'lucide-react';
+import { X, ShieldAlert, CheckCircle, ArrowRight, RefreshCw, Smartphone, QrCode, Copy, Check, Sparkles, ExternalLink, Navigation, MessageCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Order } from '@/types';
@@ -20,8 +20,8 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
   const [customerEmail, setCustomerEmail] = useState(user?.email || '');
   const [shippingAddress, setShippingAddress] = useState('');
-  const [city, setCity] = useState('Ahmedabad');
-  const [state, setState] = useState('Gujarat');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI / Online'>('UPI / Online');
   const [unboxingPolicyAccepted, setUnboxingPolicyAccepted] = useState(true);
@@ -29,7 +29,66 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   // UPI payment state
   const [upiRefId, setUpiRefId] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const merchantUpiId = process.env.NEXT_PUBLIC_MERCHANT_UPI_ID || '9714475575@ybl';
+  const merchantUpiId = process.env.NEXT_PUBLIC_MERCHANT_UPI_ID || 'ak25803936@okaxis';
+
+  // Geolocation state
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationStatus, setLocationStatus] = useState('');
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsLocating(true);
+    setLocationStatus('Getting your GPS location...');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          setLocationStatus('Fetching address details...');
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+          const data = await res.json();
+          if (data && data.address) {
+            const addr = data.address;
+            const addressParts = [
+              addr.house_number,
+              addr.building,
+              addr.road,
+              addr.suburb,
+              addr.neighbourhood,
+              addr.residential
+            ].filter(Boolean);
+            
+            const detailedAddress = addressParts.length > 0 
+              ? addressParts.join(', ') 
+              : (data.display_name?.split(',').slice(0, 3).join(', ') || '');
+              
+            if (detailedAddress) setShippingAddress(detailedAddress);
+            const detectedCity = addr.city || addr.town || addr.village || addr.county || addr.state_district || '';
+            if (detectedCity) setCity(detectedCity);
+            const detectedState = addr.state || '';
+            if (detectedState) setState(detectedState);
+            const detectedPincode = addr.postcode || '';
+            if (detectedPincode) setPincode(detectedPincode.replace(/\D/g, '').slice(0, 6));
+            setLocationStatus('Location detected successfully!');
+            setTimeout(() => setLocationStatus(''), 3000);
+          } else {
+            setLocationStatus('Could not determine exact address. Please enter manually.');
+          }
+        } catch {
+          setLocationStatus('Could not auto-fetch address. Please enter manually.');
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      () => {
+        setIsLocating(false);
+        setLocationStatus('Location permission denied or unavailable. Please enter manually.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<Order | null>(null);
@@ -195,6 +254,30 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
               )}
             </div>
 
+            {/* WhatsApp Direct Receipt & Admin Notification */}
+            <div className="space-y-2 pt-2">
+              <a
+                href={`https://wa.me/919714475575?text=${encodeURIComponent(
+                  `*NEW ORDER - Shree Fashion Hub*\n` +
+                  `*Order No:* #${orderSuccess.orderNumber}\n` +
+                  `*Customer:* ${orderSuccess.customerName} (${orderSuccess.customerPhone})\n` +
+                  `*Delivery Address:* ${orderSuccess.shippingAddress}, ${orderSuccess.city}, ${orderSuccess.state} - ${orderSuccess.pincode}\n` +
+                  `*Amount:* ₹${orderSuccess.totalAmount} (${orderSuccess.paymentMethod})\n` +
+                  (orderSuccess.upiTransactionId ? `*UPI Ref/UTR:* ${orderSuccess.upiTransactionId}\n` : '') +
+                  `*Items:* ${orderSuccess.items.map(i => `${i.title} (Size: ${i.size}) x${i.quantity}`).join(', ')}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md"
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" />
+                <span>Send Order Confirmation to WhatsApp (Instant Receipt)</span>
+              </a>
+              <p className="text-[11px] text-slate-500 text-center">
+                ✓ Order saved in Admin Panel and SMS notification queued.
+              </p>
+            </div>
+
             <button
               onClick={onClose}
               className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#111827] hover:bg-[#1E3A8A] text-white font-bold text-xs transition-colors"
@@ -258,15 +341,36 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
             {/* Shipping Details */}
             <div className="space-y-2.5 pt-1">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                2. Shipping Address
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  2. Shipping Address
+                </h4>
+                <button
+                  type="button"
+                  onClick={handleGetCurrentLocation}
+                  disabled={isLocating}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1E3A8A] hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                  title="Detect your current location using GPS"
+                >
+                  <Navigation className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
+                  <span>{isLocating ? 'Locating...' : 'Use My Current Location'}</span>
+                </button>
+              </div>
+
+              {locationStatus && (
+                <p className="text-[11px] font-semibold text-[#1E3A8A] bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100">
+                  {locationStatus}
+                </p>
+              )}
+
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Street Address</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  Street Address / Flat / Landmark <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="House number, apartment name, street, landmark..."
+                  placeholder="House/flat number, apartment name, street, nearby landmark..."
                   value={shippingAddress}
                   onChange={e => setShippingAddress(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-900"
@@ -275,27 +379,35 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">City</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    City <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    placeholder="Enter City"
                     value={city}
                     onChange={e => setCity(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-300 text-xs bg-slate-50"
+                    className="w-full p-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">State</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    State <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    placeholder="Enter State"
                     value={state}
                     onChange={e => setState(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-300 text-xs bg-slate-50"
+                    className="w-full p-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Pincode</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Pincode <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -303,7 +415,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     maxLength={6}
                     value={pincode}
                     onChange={e => setPincode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full p-2 rounded-xl border border-slate-300 text-xs bg-slate-50"
+                    className="w-full p-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-900"
                   />
                 </div>
               </div>

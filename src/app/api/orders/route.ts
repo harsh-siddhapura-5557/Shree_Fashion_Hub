@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrders, createOrder, updateOrderStatus } from '@/lib/db';
 import { sendOrderNotifications } from '@/lib/email';
+import { sendOrderSmsNotification } from '@/lib/sms';
 import { verifyAdminAuth, sanitizeString, isValidEmail, isValidPincode, checkRateLimit } from '@/lib/security';
 import { isValidIndianPhone } from '@/lib/auth';
 import { Order, OrderItem } from '@/types';
@@ -135,11 +136,22 @@ export async function POST(req: NextRequest) {
       unboxingPolicyAccepted: true
     });
 
-    // Fire email notifications to both Customer and Admin securely
+    // Fire notifications to both Customer and Admin securely
     try {
       await sendOrderNotifications(newOrder);
     } catch (notificationError) {
-      console.error('Notification dispatch note:', notificationError);
+      console.error('Email dispatch note:', notificationError);
+    }
+
+    try {
+      await sendOrderSmsNotification(
+        newOrder.customerPhone,
+        newOrder.orderNumber,
+        newOrder.totalAmount,
+        newOrder.customerName
+      );
+    } catch (smsError) {
+      console.error('SMS dispatch note:', smsError);
     }
 
     return NextResponse.json({

@@ -2,13 +2,23 @@ import fs from 'fs';
 import path from 'path';
 import { Product, Order, Review } from '@/types';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'store.json');
+const LOCAL_DATA_DIR = path.join(process.cwd(), 'data');
+const LOCAL_DATA_FILE = path.join(LOCAL_DATA_DIR, 'store.json');
+const TMP_DATA_FILE = path.join('/tmp', 'shree_store.json');
 
 interface StoreData {
   products: Product[];
   orders: Order[];
   reviews: Review[];
+}
+
+let inMemoryStore: StoreData | null = null;
+
+function getStoreFilePath(): string {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    return TMP_DATA_FILE;
+  }
+  return LOCAL_DATA_FILE;
 }
 
 const DEFAULT_PRODUCTS: Product[] = [
@@ -238,43 +248,71 @@ const DEFAULT_ORDERS: Order[] = [
 ];
 
 function ensureDataFile(): StoreData {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (inMemoryStore) {
+    return inMemoryStore;
   }
 
-  if (!fs.existsSync(DATA_FILE)) {
-    const initialData: StoreData = {
-      products: DEFAULT_PRODUCTS,
-      orders: DEFAULT_ORDERS,
-      reviews: DEFAULT_REVIEWS
-    };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
-    return initialData;
-  }
+  const initialData: StoreData = {
+    products: DEFAULT_PRODUCTS,
+    orders: DEFAULT_ORDERS,
+    reviews: DEFAULT_REVIEWS
+  };
 
+  const targetPath = getStoreFilePath();
+
+  // 1. Try reading from target file
   try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return {
-      products: parsed.products || DEFAULT_PRODUCTS,
-      orders: parsed.orders || DEFAULT_ORDERS,
-      reviews: parsed.reviews || DEFAULT_REVIEWS
-    };
+    if (fs.existsSync(targetPath)) {
+      const raw = fs.readFileSync(targetPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      inMemoryStore = {
+        products: parsed.products || DEFAULT_PRODUCTS,
+        orders: parsed.orders || DEFAULT_ORDERS,
+        reviews: parsed.reviews || DEFAULT_REVIEWS
+      };
+      return inMemoryStore;
+    }
   } catch (err) {
-    console.error('Error reading store file:', err);
-    return {
-      products: DEFAULT_PRODUCTS,
-      orders: DEFAULT_ORDERS,
-      reviews: DEFAULT_REVIEWS
-    };
+    console.warn('[db] Could not read target store file:', err);
   }
+
+  // 2. Try seeding from local repository data file if reading target file failed
+  if (targetPath !== LOCAL_DATA_FILE) {
+    try {
+      if (fs.existsSync(LOCAL_DATA_FILE)) {
+        const raw = fs.readFileSync(LOCAL_DATA_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        inMemoryStore = {
+          products: parsed.products || DEFAULT_PRODUCTS,
+          orders: parsed.orders || DEFAULT_ORDERS,
+          reviews: parsed.reviews || DEFAULT_REVIEWS
+        };
+        writeData(inMemoryStore);
+        return inMemoryStore;
+      }
+    } catch (err) {
+      console.warn('[db] Could not read local seed file:', err);
+    }
+  }
+
+  inMemoryStore = initialData;
+  writeData(initialData);
+  return inMemoryStore;
 }
 
 function writeData(data: StoreData) {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  inMemoryStore = data;
+  const targetPath = getStoreFilePath();
+  try {
+    const dir = path.dirname(targetPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(targetPath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    // Graceful fallback to memory - never crash the serverless function
+    console.warn('[db] Write to disk skipped (using in-memory store):', err);
   }
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 export function getProducts(): Product[] {
