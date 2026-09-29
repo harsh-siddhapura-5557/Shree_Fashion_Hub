@@ -68,35 +68,42 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
         </div>
 
         {/* Unified Luxury Filter & Search Toolbar */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-3.5 sm:p-4.5 space-y-3">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-3 sm:p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
             
-            {/* 1. Integrated Search Bar (takes 5 cols on lg) */}
+            {/* 1. Integrated Search Bar (exact matching 52px height) */}
             <div className="lg:col-span-5 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search jeans by name, wash, fit..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 text-xs font-semibold bg-slate-50/70 focus:bg-white transition-all text-slate-900"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5"
-                  title="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <div className="flex items-center h-[52px] rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 transition-all">
+                <Search className="w-4 h-4 text-slate-400 shrink-0 mr-2.5" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
+                    Search Jeans
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search by name, wash, fit..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none placeholder:text-slate-400 placeholder:font-normal py-0.5"
+                  />
+                </div>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="text-slate-400 hover:text-slate-700 p-1 shrink-0 ml-1"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* 2. Fit / Style Dropdown (takes 3 cols on lg) */}
+            {/* 2. Fit / Style Dropdown (exact matching 52px height & English only) */}
             <div className="lg:col-span-3 relative">
-              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 py-1 transition-all">
-                <Filter className="w-3.5 h-3.5 text-[#1E3A8A] shrink-0 mr-2" />
+              <div className="flex items-center h-[52px] rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 transition-all">
+                <Filter className="w-3.5 h-3.5 text-[#1E3A8A] shrink-0 mr-2.5" />
                 <div className="flex-1 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
                     Fit / Style
@@ -105,23 +112,23 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
                     value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
                     aria-label="Filter by Fit or Style"
-                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-1"
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-0.5"
                   >
-                    <option value="All">All Fits (બધા ફિટ)</option>
-                    <option value="Straight Cut">Straight Cut (સ્ટ્રેટ કટ)</option>
-                    <option value="Baggy / Wide Leg">Baggy / Wide Leg (બેગી)</option>
-                    <option value="Slim Fit">Slim Fit (સ્લીમ ફિટ)</option>
-                    <option value="Cargo Denim">Cargo Denim (કાર્ગો)</option>
-                    <option value="Relaxed Fit">Relaxed Fit (રિલેક્સ્ડ)</option>
+                    <option value="All">All Fits</option>
+                    <option value="Straight Cut">Straight Cut</option>
+                    <option value="Baggy / Wide Leg">Baggy / Wide Leg</option>
+                    <option value="Slim Fit">Slim Fit</option>
+                    <option value="Cargo Denim">Cargo Denim</option>
+                    <option value="Relaxed Fit">Relaxed Fit</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* 3. Size Dropdown (takes 2 cols on lg) */}
+            {/* 3. Size Dropdown (exact matching 52px height) */}
             <div className="lg:col-span-2 relative">
-              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 py-1 transition-all">
-                <Ruler className="w-3.5 h-3.5 text-amber-600 shrink-0 mr-2" />
+              <div className="flex items-center h-[52px] rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 transition-all">
+                <Ruler className="w-3.5 h-3.5 text-amber-600 shrink-0 mr-2.5" />
                 <div className="flex-1 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
                     Size
@@ -130,7 +137,7 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
                     value={selectedSize}
                     onChange={e => setSelectedSize(e.target.value)}
                     aria-label="Filter by Waist Size"
-                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-1"
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-0.5"
                   >
                     <option value="All">All Sizes</option>
                     <option value="28">28&quot; Waist</option>
@@ -144,10 +151,10 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
               </div>
             </div>
 
-            {/* 4. Sort Dropdown (takes 2 cols on lg) */}
+            {/* 4. Sort Dropdown (exact matching 52px height) */}
             <div className="lg:col-span-2 relative">
-              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 py-1 transition-all">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0 mr-2" />
+              <div className="flex items-center h-[52px] rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 transition-all">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0 mr-2.5" />
                 <div className="flex-1 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
                     Sort By
@@ -156,7 +163,7 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value as any)}
                     aria-label="Sort products by"
-                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-1"
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-0.5"
                   >
                     <option value="featured">Featured Archive</option>
                     <option value="price-low">Price: Low to High</option>
@@ -168,76 +175,6 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
             </div>
 
           </div>
-
-          {/* Active Filter Pills Bar & Results Counter */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100 text-xs">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold text-slate-500">
-                Showing <strong className="text-slate-950 font-black">{sortedProducts.length}</strong> jeans
-              </span>
-
-              {/* Active Category Chip */}
-              {selectedCategory !== 'All' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#111827] text-white text-[11px] font-bold">
-                  <span>Fit: {selectedCategory}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory('All')}
-                    className="hover:text-amber-400"
-                    title="Remove fit filter"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {/* Active Size Chip */}
-              {selectedSize !== 'All' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1E3A8A] text-white text-[11px] font-bold">
-                  <span>Size: {selectedSize}&quot;</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSize('All')}
-                    className="hover:text-amber-400"
-                    title="Remove size filter"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {/* Active Search Chip */}
-              {searchQuery && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-200 text-slate-800 text-[11px] font-bold">
-                  <span>&quot;{searchQuery}&quot;</span>
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="hover:text-red-600"
-                    title="Remove search"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-            </div>
-
-            {/* Clear All Button if any filter active */}
-            {(selectedCategory !== 'All' || selectedSize !== 'All' || searchQuery) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategory('All');
-                  setSelectedSize('All');
-                  setSearchQuery('');
-                }}
-                className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline flex items-center gap-1 transition-colors"
-              >
-                <span>Clear All Filters</span>
-              </button>
-            )}
-          </div>
-
         </div>
 
         {/* Full-Width Grid: 2 cols on mobile, 3 on tablet, 4 on desktop, 4-5 on large screens */}
