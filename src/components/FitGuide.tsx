@@ -88,10 +88,10 @@ export function FitGuide() {
               <span>Interactive Denim Fit Studio</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-black font-display tracking-tight text-slate-950">
-              FIND YOUR PERFECT <span className="text-[#1E3A8A]">SILHOUETTE</span>
+              FIND YOUR PERFECT <span className="text-[#1E3A8A]">JEANS FIT</span>
             </h2>
             <p className="text-slate-600 text-sm sm:text-base mt-2">
-              Compare how each cut drapes from waist to ankle. Click any silhouette to explore measurements and available waist sizes.
+              Compare how each cut drapes from waist to ankle. Click any fit to explore measurements and available sizes.
             </p>
           </div>
 

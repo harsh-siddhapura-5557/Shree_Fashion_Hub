@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Search, SlidersHorizontal, Sparkles, Filter, Ruler, X } from 'lucide-react';
 import { Product } from '@/types';
 import { ProductCard } from './ProductCard';
 import { ProductDetailModal } from './ProductDetailModal';
@@ -53,92 +53,189 @@ export function ProductGrid({ initialProducts }: ProductGridProps) {
     <section id="catalog" className="py-14 sm:py-20 bg-[#FAF9F6] border-b border-slate-200">
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 space-y-6 sm:space-y-8">
         
-        {/* Header & Search */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#92400E] uppercase tracking-wider mb-1">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>100% Rigid & Stretch Denim Catalog</span>
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black font-display text-slate-950">
-              DISCOVER ALL JEANS
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Hand-picked washes with double-needle construction and authentic rivets. Choose your waist size below.
-            </p>
+        {/* Header Title */}
+        <div>
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#92400E] uppercase tracking-wider mb-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>100% Rigid & Stretch Denim Catalog</span>
           </div>
-
-          {/* Search Box */}
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by wash, selvedge, fit..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:outline-none focus:border-slate-900 bg-white shadow-xs"
-            />
-          </div>
+          <h2 className="text-3xl sm:text-5xl font-black font-display text-slate-950">
+            DISCOVER ALL JEANS
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 mt-1">
+            Hand-picked washes with double-needle construction. Select your preferred fit and size below.
+          </p>
         </div>
 
-        {/* Filter Toolbar across full width */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
-          
-          {/* Fit Categories */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0 mr-1 hidden sm:inline">
-              Silhouette:
-            </span>
-            {CATEGORIES.map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                  selectedCategory === category
-                    ? 'bg-[#111827] text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+        {/* Unified Luxury Filter & Search Toolbar */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-3.5 sm:p-4.5 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+            
+            {/* 1. Integrated Search Bar (takes 5 cols on lg) */}
+            <div className="lg:col-span-5 relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search jeans by name, wash, fit..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 text-xs font-semibold bg-slate-50/70 focus:bg-white transition-all text-slate-900"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* 2. Fit / Style Dropdown (takes 3 cols on lg) */}
+            <div className="lg:col-span-3 relative">
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 py-1 transition-all">
+                <Filter className="w-3.5 h-3.5 text-[#1E3A8A] shrink-0 mr-2" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
+                    Fit / Style
+                  </span>
+                  <select
+                    value={selectedCategory}
+                    onChange={e => setSelectedCategory(e.target.value)}
+                    aria-label="Filter by Fit or Style"
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="All">All Fits (બધા ફિટ)</option>
+                    <option value="Straight Cut">Straight Cut (સ્ટ્રેટ કટ)</option>
+                    <option value="Baggy / Wide Leg">Baggy / Wide Leg (બેગી)</option>
+                    <option value="Slim Fit">Slim Fit (સ્લીમ ફિટ)</option>
+                    <option value="Cargo Denim">Cargo Denim (કાર્ગો)</option>
+                    <option value="Relaxed Fit">Relaxed Fit (રિલેક્સ્ડ)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Size Dropdown (takes 2 cols on lg) */}
+            <div className="lg:col-span-2 relative">
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 py-1 transition-all">
+                <Ruler className="w-3.5 h-3.5 text-amber-600 shrink-0 mr-2" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
+                    Size
+                  </span>
+                  <select
+                    value={selectedSize}
+                    onChange={e => setSelectedSize(e.target.value)}
+                    aria-label="Filter by Waist Size"
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="All">All Sizes</option>
+                    <option value="28">28&quot; Waist</option>
+                    <option value="30">30&quot; Waist</option>
+                    <option value="32">32&quot; Waist</option>
+                    <option value="34">34&quot; Waist</option>
+                    <option value="36">36&quot; Waist</option>
+                    <option value="38">38&quot; Waist</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Sort Dropdown (takes 2 cols on lg) */}
+            <div className="lg:col-span-2 relative">
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 focus-within:border-[#1E3A8A] focus-within:ring-2 focus-within:ring-[#1E3A8A]/10 px-3 py-1 transition-all">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0 mr-2" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block -mb-0.5">
+                    Sort By
+                  </span>
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as any)}
+                    aria-label="Sort products by"
+                    className="w-full bg-transparent font-bold text-xs text-slate-900 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="featured">Featured Archive</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="rating">Top Rated</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          {/* Waist Sizes & Sort */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0 mr-1">
-                Waist Size:
+          {/* Active Filter Pills Bar & Results Counter */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-500">
+                Showing <strong className="text-slate-950 font-black">{sortedProducts.length}</strong> jeans
               </span>
-              {WAIST_SIZES.map(size => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    selectedSize === size
-                      ? 'bg-[#1E3A8A] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {size === 'All' ? 'All Sizes' : `${size}"`}
-                </button>
-              ))}
+
+              {/* Active Category Chip */}
+              {selectedCategory !== 'All' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#111827] text-white text-[11px] font-bold">
+                  <span>Fit: {selectedCategory}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('All')}
+                    className="hover:text-amber-400"
+                    title="Remove fit filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {/* Active Size Chip */}
+              {selectedSize !== 'All' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1E3A8A] text-white text-[11px] font-bold">
+                  <span>Size: {selectedSize}&quot;</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSize('All')}
+                    className="hover:text-amber-400"
+                    title="Remove size filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {/* Active Search Chip */}
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-200 text-slate-800 text-[11px] font-bold">
+                  <span>&quot;{searchQuery}&quot;</span>
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="hover:text-red-600"
+                    title="Remove search"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
-                aria-label="Sort products by"
-                className="py-1.5 px-3 rounded-xl border border-slate-200 bg-white font-bold text-xs focus:outline-none"
+            {/* Clear All Button if any filter active */}
+            {(selectedCategory !== 'All' || selectedSize !== 'All' || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('All');
+                  setSelectedSize('All');
+                  setSearchQuery('');
+                }}
+                className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline flex items-center gap-1 transition-colors"
               >
-                <option value="featured">Featured Archive</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Top Rated</option>
-              </select>
-            </div>
+                <span>Clear All Filters</span>
+              </button>
+            )}
           </div>
 
         </div>
