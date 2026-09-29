@@ -235,6 +235,12 @@ export async function sendOtpEmail(
   const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <localworkuse24@gmail.com>';
   const name = customerName?.trim() || 'Valued Customer';
 
+  const otpDigits = otp.split('').map(d => `
+    <td align="center" style="font-size: 52px; font-weight: 900; color: #0b132b; font-family: Arial, Helvetica, sans-serif; padding: 0 10px; line-height: 52px;">
+      ${d}
+    </td>
+  `).join('');
+
   const otpHtml = `
     <!DOCTYPE html>
     <html>
@@ -277,12 +283,18 @@ export async function sendOtpEmail(
             Use the 6-digit verification code below to complete your login or registration at Shree Fashion Hub:
           </p>
 
-          <!-- OTP Box (Matching Screenshot Exactly) -->
-          <div style="border: 2.5px dashed #0b132b; border-radius: 20px; padding: 26px 16px; margin: 0 auto 28px auto; max-width: 330px; text-align: center; background: #ffffff;">
-            <span style="font-size: 54px; font-weight: 800; letter-spacing: 22px; color: #0b132b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: inline-block; line-height: 1; padding-left: 22px;">
-              ${otp}
-            </span>
-          </div>
+          <!-- OTP Box (Guaranteed 52px Huge Digits across all Gmail apps) -->
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 28px auto;">
+            <tr>
+              <td align="center" style="border: 2.5px dashed #0b132b; border-radius: 20px; padding: 20px 24px; background-color: #ffffff;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center">
+                  <tr>
+                    ${otpDigits}
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
 
           <p style="margin: 0 0 8px 0; color: #475569; font-size: 13px; font-weight: 500;">
             ⏱️ This OTP is valid for <strong>10 minutes</strong>.
