@@ -11,8 +11,8 @@ interface AuthContextType {
   postAuthRedirectAction: (() => void) | null;
   openAuthModal: (onSuccessAction?: () => void) => void;
   closeAuthModal: () => void;
-  requestPhoneOtp: (phone: string) => Promise<{ success: boolean; message: string; cooldownSeconds?: number; debugOtp?: string }>;
-  verifyPhoneOtp: (phone: string, otp: string) => Promise<{ success: boolean; message: string }>;
+  requestPhoneOtp: (phone: string) => Promise<{ success: boolean; message: string; cooldownSeconds?: number; debugOtp?: string; token?: string }>;
+  verifyPhoneOtp: (phone: string, otp: string, token?: string) => Promise<{ success: boolean; message: string }>;
   loginWithSocial: (provider: 'google' | 'apple', details?: { name?: string; email?: string }) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
 }
@@ -65,12 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const verifyPhoneOtp = async (phone: string, otp: string) => {
+  const verifyPhoneOtp = async (phone: string, otp: string, token?: string) => {
     try {
       const res = await fetch('/api/auth/otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', phone, otp })
+        body: JSON.stringify({ action: 'verify', phone, otp, token })
       });
       const data = await res.json();
       if (data.success && data.session) {

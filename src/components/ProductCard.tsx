@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, ShoppingBag, Check } from 'lucide-react';
+import { Star, ShoppingBag, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, ProductColor } from '@/types';
 import { useCart } from '@/context/CartContext';
 
@@ -16,7 +16,42 @@ export function ProductCard({ product, onOpenDetails }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0]);
   const [isAdded, setIsAdded] = useState(false);
 
-  const activeImage = selectedColor?.image || product.images[0];
+  // Swipe & Image Navigation State
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const imagesList = product.images && product.images.length > 0
+    ? product.images
+    : [selectedColor?.image || ''];
+
+  const activeImage = imagesList[activeImageIndex % imagesList.length] || selectedColor?.image || product.images[0];
+
+  const handleNextPhoto = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setActiveImageIndex(prev => (prev + 1) % imagesList.length);
+  };
+
+  const handlePrevPhoto = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setActiveImageIndex(prev => (prev - 1 + imagesList.length) % imagesList.length);
+  };
+
+  // Touch Swipe Gesture Handlers (Mobile & Tablet)
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    // 40px threshold for swipe
+    if (diff > 40) {
+      handleNextPhoto();
+    } else if (diff < -40) {
+      handlePrevPhoto();
+    }
+    setTouchStartX(null);
+  };
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,17 +65,59 @@ export function ProductCard({ product, onOpenDetails }: ProductCardProps) {
       onClick={() => onOpenDetails(product)}
       className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col cursor-pointer"
     >
-      {/* Product Image Area */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100">
+      {/* Product Image Area with Touch Swipe */}
+      <div 
+        className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 select-none touch-pan-y"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <img
           src={activeImage}
           alt={product.title}
-          className="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-300 ease-out"
+          className="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-300 ease-out pointer-events-none"
           loading="lazy"
         />
 
+        {/* Swipe Arrows (Visible on mobile & desktop hover) */}
+        {imagesList.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrevPhoto}
+              aria-label="Previous photo"
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs flex items-center justify-center transition-all opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-10"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextPhoto}
+              aria-label="Next photo"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs flex items-center justify-center transition-all opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-10"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+
+        {/* Swipe Dot Indicators */}
+        {imagesList.length > 1 && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 z-10 bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-full">
+            {imagesList.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  (activeImageIndex % imagesList.length) === i 
+                    ? 'w-3 bg-amber-400' 
+                    : 'w-1.5 bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Badges */}
-        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 flex flex-col gap-1 z-10">
+        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 flex flex-col gap-1 z-10 pointer-events-none">
           {product.discountPercentage > 0 && (
             <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[9px] sm:text-[10px] font-extrabold tracking-wide uppercase">
               {product.discountPercentage}% OFF
@@ -54,7 +131,7 @@ export function ProductCard({ product, onOpenDetails }: ProductCardProps) {
         </div>
 
         {/* Category Pill */}
-        <div className="absolute bottom-2 left-2">
+        <div className="absolute bottom-2 left-2 pointer-events-none">
           <span className="px-2 py-0.5 rounded bg-white/95 backdrop-blur-sm text-[9px] sm:text-[10px] font-semibold text-slate-800 shadow-xs">
             {product.category}
           </span>
@@ -87,7 +164,13 @@ export function ProductCard({ product, onOpenDetails }: ProductCardProps) {
             {product.colors.map(color => (
               <button
                 key={color.name}
-                onClick={() => setSelectedColor(color)}
+                onClick={() => {
+                  setSelectedColor(color);
+                  if (color.image) {
+                    const matchIdx = imagesList.indexOf(color.image);
+                    if (matchIdx >= 0) setActiveImageIndex(matchIdx);
+                  }
+                }}
                 title={color.name}
                 className={`w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border transition-all ${
                   selectedColor.name === color.name

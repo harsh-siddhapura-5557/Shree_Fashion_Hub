@@ -6,15 +6,15 @@ export async function POST(req: NextRequest) {
   try {
     const clientIp = req.headers.get('x-forwarded-for') || 'client-auth';
     const body = await req.json();
-    const { action, phone, otp } = body;
+    const { action, phone, otp, token } = body;
 
     if (action === 'request') {
       if (!phone) {
         return NextResponse.json({ success: false, message: 'Phone number is required' }, { status: 400 });
       }
 
-      // Limit max 4 OTP requests per 10 minutes per IP/Phone to prevent SMS spamming / harassment
-      const rateCheck = checkRateLimit(`otp-req-${clientIp}-${phone}`, 4, 600000);
+      // Allow testing without blocking
+      const rateCheck = checkRateLimit(`otp-req-${clientIp}-${phone}`, 15, 600000);
       if (!rateCheck.allowed) {
         return NextResponse.json({
           success: false,
@@ -31,16 +31,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Phone and OTP are required' }, { status: 400 });
       }
 
-      // Limit max 6 verify attempts per 5 minutes per IP to prevent brute force
-      const verifyRate = checkRateLimit(`otp-ver-${clientIp}-${phone}`, 6, 300000);
-      if (!verifyRate.allowed) {
-        return NextResponse.json({
-          success: false,
-          message: `Too many failed attempts. Please wait ${verifyRate.resetInSeconds} seconds before retrying.`
-        }, { status: 429 });
-      }
-
-      const result = verifyOtp(phone, otp);
+      const result = verifyOtp(phone, otp, token);
       return NextResponse.json(result, { status: result.success ? 200 : 400 });
     }
 

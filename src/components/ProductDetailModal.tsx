@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Star, ShoppingBag, ShieldAlert, CheckCircle, Sparkles, MessageSquare, Send } from 'lucide-react';
+import { X, Star, ShoppingBag, ShieldAlert, CheckCircle, Sparkles, MessageSquare, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, ProductColor, Review } from '@/types';
 import { useCart } from '@/context/CartContext';
 
@@ -17,6 +17,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   // Reviews state
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -48,6 +49,37 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
   }, [product]);
 
   if (!product || !selectedColor) return null;
+
+  const imageList = product.images && product.images.length > 0 ? product.images : [selectedImage];
+  const currentIdx = imageList.indexOf(selectedImage);
+  const safeIdx = currentIdx >= 0 ? currentIdx : 0;
+
+  const handleNextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const next = (safeIdx + 1) % imageList.length;
+    setSelectedImage(imageList[next]);
+  };
+
+  const handlePrevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const prev = (safeIdx - 1 + imageList.length) % imageList.length;
+    setSelectedImage(imageList[prev]);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (diff > 40) {
+      handleNextImage();
+    } else if (diff < -40) {
+      handlePrevImage();
+    }
+    setTouchStartX(null);
+  };
 
   const handleAdd = () => {
     addToCart(product, selectedSize, selectedColor, quantity);
@@ -106,25 +138,60 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
           {/* Left Column: Image & Thumbnails */}
           <div className="p-4 sm:p-6 bg-slate-50 flex flex-col justify-between space-y-4">
             <div className="space-y-3">
-              <div className="aspect-[3/4] w-full rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-slate-200 relative">
+              <div 
+                className="aspect-[3/4] w-full rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-slate-200 relative select-none touch-pan-y group"
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEnd}
+              >
                 <img
                   src={selectedImage}
                   alt={product.title}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover object-center pointer-events-none transition-all duration-200"
                 />
-                <div className="absolute top-2.5 left-2.5 bg-slate-900 text-white px-2.5 py-0.5 rounded-md text-[10px] font-bold">
+
+                {/* Left/Right Navigation Arrows */}
+                {imageList.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrevImage}
+                      aria-label="Previous photo"
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-xs flex items-center justify-center transition-all z-10 shadow-sm"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextImage}
+                      aria-label="Next photo"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-xs flex items-center justify-center transition-all z-10 shadow-sm"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Floating Photo Counter & Swipe Hint Pill */}
+                {imageList.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 z-10 pointer-events-none shadow-sm">
+                    <span>{safeIdx + 1} / {imageList.length}</span>
+                    <span className="text-amber-400 font-extrabold">• Swipe</span>
+                  </div>
+                )}
+
+                <div className="absolute top-2.5 left-2.5 bg-slate-900 text-white px-2.5 py-0.5 rounded-md text-[10px] font-bold z-10">
                   {product.category}
                 </div>
               </div>
 
               {/* Thumbnails */}
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {product.images.map((img, i) => (
+                {imageList.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(img)}
                     className={`w-14 h-18 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
-                      selectedImage === img ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200 opacity-60'
+                      selectedImage === img ? 'border-slate-900 ring-1 ring-slate-900 scale-102' : 'border-slate-200 opacity-60'
                     }`}
                   >
                     <img src={img} alt="Thumbnail" className="w-full h-full object-cover" />
