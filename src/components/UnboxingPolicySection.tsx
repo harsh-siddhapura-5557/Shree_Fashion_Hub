@@ -76,9 +76,18 @@ export function UnboxingPolicySection() {
           {/* Right Column: Explanatory Text */}
           <div className="lg:col-span-7 space-y-4 order-1 lg:order-2 text-left">
             
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider border border-slate-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#1E3A8A]" />
-              <span>Official Return Guarantee</span>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#FAF9F6] p-1 shadow-xs border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
+                <img 
+                  src="/brand/shree-fashion-hub-emblem.png" 
+                  alt="Shree Fashion Hub Certified Seal" 
+                  className="w-full h-full object-contain" 
+                />
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider border border-slate-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#1E3A8A]" />
+                <span>Official Return Guarantee</span>
+              </div>
             </div>
 
             <h2 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-slate-950">

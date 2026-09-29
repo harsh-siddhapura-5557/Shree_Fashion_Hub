@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/brand/sf-luxury-logo.png',
+    shortcut: '/brand/sf-luxury-logo.png',
+    apple: '/brand/sf-luxury-logo.png',
   },
 };
 

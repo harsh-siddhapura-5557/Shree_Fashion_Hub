@@ -69,9 +69,26 @@ export function Footer() {
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm pt-1">
               Crafting premium denim engineered specifically for Indian builds. Built with heavy ring-spun cotton, authentic shuttle loom selvedge, and solid brass hardware.
             </p>
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>100% Genuine Handcrafted Denim Guarantee</span>
+            {/* Official Brand Seal (First uploaded image) */}
+            <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/5 border border-slate-800/80 shadow-xs max-w-sm">
+              <div className="w-16 h-16 rounded-xl bg-white p-1 shrink-0 overflow-hidden flex items-center justify-center shadow-sm">
+                <img 
+                  src="/brand/shree-fashion-hub-emblem.png" 
+                  alt="Shree Fashion Hub Official Seal" 
+                  className="w-full h-full object-contain" 
+                />
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 block">
+                  Official Atelier Seal
+                </span>
+                <h4 className="text-xs font-black text-white">
+                  Shree Fashion Hub
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  100% Genuine Handcrafted Denim Guarantee
+                </p>
+              </div>
             </div>
           </div>
 
