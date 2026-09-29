@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
 import { Order } from '@/types';
 
 // Configure transporter using env variables or fallback
@@ -57,9 +59,12 @@ export async function sendOrderNotifications(order: Order) {
       <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
         
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); padding: 36px 24px 28px 24px; text-align: center; color: #ffffff;">
+          <div style="margin-bottom: 12px;">
+            <img src="cid:sf_brand_logo" alt="Shree Fashion Hub Logo" width="72" height="72" style="width: 72px; height: 72px; border-radius: 16px; border: 2.5px solid #f59e0b; background: #ffffff; padding: 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.3); display: inline-block; object-fit: contain;" />
+          </div>
           <h1 style="margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; color: #f59e0b;">SHREE FASHION HUB</h1>
-          <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.85; letter-spacing: 1px;">PREMIUM DENIM & JEANS ARCHIVE</p>
+          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9; letter-spacing: 1.5px; color: #cbd5e1;">PREMIUM DENIM & JEANS ARCHIVE</p>
         </div>
 
         <!-- Success Banner -->
@@ -172,12 +177,22 @@ export async function sendOrderNotifications(order: Order) {
 
   if (transporter) {
     try {
+      const logoPath = path.join(process.cwd(), 'public', 'brand', 'sf-luxury-logo.png');
+      const attachments = fs.existsSync(logoPath) ? [
+        {
+          filename: 'sf-luxury-logo.png',
+          path: logoPath,
+          cid: 'sf_brand_logo'
+        }
+      ] : [];
+
       // Send to Customer
       await transporter.sendMail({
         from: fromEmail,
         to: order.customerEmail,
         subject: `Your Shree Fashion Hub Order #${order.orderNumber} is Confirmed! 👖`,
-        html: customerEmailHtml
+        html: customerEmailHtml,
+        attachments
       });
 
       // Send to Admin
@@ -185,7 +200,8 @@ export async function sendOrderNotifications(order: Order) {
         from: fromEmail,
         to: adminEmail,
         subject: `🚨 [New Order] #${order.orderNumber} by ${order.customerName} (₹${order.totalAmount})`,
-        html: adminEmailHtml
+        html: adminEmailHtml,
+        attachments
       });
       return { success: true, delivered: true };
     } catch (err) {
@@ -224,9 +240,22 @@ export async function sendOtpEmail(
       <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
         
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
-          <h1 style="margin: 0; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; color: #f59e0b;">SHREE FASHION HUB</h1>
-          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.85; letter-spacing: 1px;">PREMIUM DENIM & JEANS ARCHIVE</p>
+        <div style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); padding: 36px 24px 28px 24px; text-align: center; color: #ffffff;">
+          <div style="margin-bottom: 14px;">
+            <img 
+              src="cid:sf_brand_logo" 
+              alt="Shree Fashion Hub" 
+              width="80" 
+              height="80" 
+              style="width: 80px; height: 80px; border-radius: 20px; border: 2.5px solid #f59e0b; background: #ffffff; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); display: inline-block; object-fit: contain;" 
+            />
+          </div>
+          <h1 style="margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; font-weight: 900; color: #f59e0b; font-family: 'Georgia', serif;">
+            SHREE FASHION HUB
+          </h1>
+          <p style="margin: 6px 0 0 0; font-size: 11px; opacity: 0.9; letter-spacing: 2.2px; text-transform: uppercase; color: #cbd5e1; font-weight: 600;">
+            HANDCRAFTED DENIM &bull; EST. 2026
+          </p>
         </div>
 
         <!-- Content -->
@@ -272,11 +301,21 @@ export async function sendOtpEmail(
 
   if (transporter) {
     try {
+      const logoPath = path.join(process.cwd(), 'public', 'brand', 'sf-luxury-logo.png');
+      const attachments = fs.existsSync(logoPath) ? [
+        {
+          filename: 'sf-luxury-logo.png',
+          path: logoPath,
+          cid: 'sf_brand_logo'
+        }
+      ] : [];
+
       await transporter.sendMail({
         from: fromEmail,
         to: email,
         subject: `Your Verification Code: ${otp} - Shree Fashion Hub 👖`,
-        html: otpHtml
+        html: otpHtml,
+        attachments
       });
       console.log(`[EMAIL OTP DELIVERED via SMTP] To: ${email} | OTP: ${otp}`);
       return { success: true, delivered: true };
