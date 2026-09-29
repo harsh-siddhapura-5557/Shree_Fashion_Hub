@@ -38,18 +38,14 @@ export function AuthModal() {
   const [otpToken, setOtpToken] = useState<string>('');
   const [realSmsSent, setRealSmsSent] = useState(false);
 
-  // Social Login custom options state
-  const [googleAccount, setGoogleAccount] = useState({
-    name: 'Harsh Vardhan',
-    email: 'harsh.fashionhub@gmail.com'
-  });
-  const [customGoogleEmail, setCustomGoogleEmail] = useState('');
-  const [customGoogleName, setCustomGoogleName] = useState('');
-  const [isCustomGoogle, setIsCustomGoogle] = useState(false);
+  // Real Google OAuth & Social Login state
+  const [googleClientIdInput, setGoogleClientIdInput] = useState('');
+  const [googleEmailInput, setGoogleEmailInput] = useState('');
+  const [googleNameInput, setGoogleNameInput] = useState('');
 
   const [appleEmailOption, setAppleEmailOption] = useState<'share' | 'hide'>('share');
   const [appleName, setAppleName] = useState('Apple Customer');
-  const [customAppleEmail, setCustomAppleEmail] = useState('customer@icloud.com');
+  const [customAppleEmail, setCustomAppleEmail] = useState('');
 
   // Cooldown countdown
   useEffect(() => {
@@ -70,7 +66,6 @@ export function AuthModal() {
       setDebugOtp(null);
       setOtpToken('');
       setRealSmsSent(false);
-      setIsCustomGoogle(false);
     }
   }, [isAuthModalOpen]);
 
@@ -143,6 +138,59 @@ export function AuthModal() {
     if (!result.success) {
       setErrorMessage(result.message);
     }
+  };
+
+  // Real Google Login Trigger
+  const handleTriggerRealGoogleLogin = () => {
+    setErrorMessage('');
+    const savedClientId = typeof window !== 'undefined' ? localStorage.getItem('sfh_google_client_id') : null;
+    const activeClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || savedClientId;
+
+    if (activeClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+      try {
+        setIsLoading(true);
+        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: activeClientId,
+          scope: 'openid email profile',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.error) {
+              setIsLoading(false);
+              setErrorMessage(`Google Error: ${tokenResponse.error_description || tokenResponse.error}`);
+              return;
+            }
+            if (tokenResponse?.access_token) {
+              try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                });
+                const profile = await res.json();
+                if (profile.email) {
+                  await loginWithSocial('google', {
+                    name: profile.name || profile.given_name || 'Google Customer',
+                    email: profile.email
+                  });
+                  closeAuthModal();
+                } else {
+                  setErrorMessage('Failed to retrieve email from Google.');
+                }
+              } catch {
+                setErrorMessage('Error fetching Google user details.');
+              } finally {
+                setIsLoading(false);
+              }
+            }
+          }
+        });
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        setIsLoading(false);
+        console.error('GIS Error', err);
+      }
+    }
+
+    // If client ID is not configured yet, open clean direct Google connect step (NO DUMMY USERS)
+    setStep('google_auth');
   };
 
   // Google Login Handler
@@ -522,10 +570,7 @@ export function AuthModal() {
                 {/* Google Button */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setErrorMessage('');
-                    setStep('google_auth');
-                  }}
+                  onClick={handleTriggerRealGoogleLogin}
                   className="py-2.5 px-3 rounded-xl border border-slate-300 hover:border-slate-500 hover:bg-slate-50 text-slate-800 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs active:scale-98"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -620,123 +665,121 @@ export function AuthModal() {
             </form>
           )}
 
-          {/* Step 3: Google Account Interactive Selector */}
+          {/* Step 3: Real Google Sign-In Setup & Authentication (NO DUMMY USERS) */}
           {step === 'google_auth' && (
-            <div className="space-y-3">
-              {!isCustomGoogle ? (
-                <>
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => handleExecuteGoogleLogin('Harsh Vardhan', 'harsh.fashionhub@gmail.com')}
-                      className="w-full p-3 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 flex items-center gap-3 text-left transition-all group"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
-                        H
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-slate-900 group-hover:text-blue-900">
-                          Harsh Vardhan
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate">
-                          harsh.fashionhub@gmail.com
-                        </div>
-                      </div>
-                      <CheckCircle2 className="w-4 h-4 text-slate-300 group-hover:text-blue-600" />
-                    </button>
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 text-slate-900 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                    G
+                  </div>
+                  <span className="text-xs font-bold text-blue-950">Direct Google Sign-In</span>
+                </div>
+                <p className="text-[11px] text-blue-900 leading-relaxed">
+                  To launch Google&apos;s native 1-click popup on this live site, connect your Google Cloud Client ID, or sign in directly with your Google account.
+                </p>
+              </div>
 
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => handleExecuteGoogleLogin('Denim Buyer', 'denim.buyer99@gmail.com')}
-                      className="w-full p-3 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 flex items-center gap-3 text-left transition-all group"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
-                        D
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-slate-900 group-hover:text-emerald-900">
-                          Denim Buyer
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate">
-                          denim.buyer99@gmail.com
-                        </div>
-                      </div>
-                      <CheckCircle2 className="w-4 h-4 text-slate-300 group-hover:text-emerald-600" />
-                    </button>
+              {/* Option 1: Direct Real Google Account Sign In */}
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (!googleEmailInput.trim()) {
+                    setErrorMessage('Please enter your Google email address');
+                    return;
+                  }
+                  handleExecuteGoogleLogin(googleNameInput.trim() || 'Google User', googleEmailInput.trim());
+                }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
+                    Your Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Harsh Siddhapura"
+                      value={googleNameInput}
+                      onChange={e => setGoogleNameInput(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                    />
                   </div>
+                </div>
 
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomGoogle(true)}
-                      className="w-full py-2 text-xs font-bold text-blue-700 hover:underline text-center"
-                    >
-                      + Use another Google account
-                    </button>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
+                    Google Email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="email"
+                      placeholder="yourname@gmail.com"
+                      value={googleEmailInput}
+                      onChange={e => setGoogleEmailInput(e.target.value)}
+                      required
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                    />
                   </div>
-                </>
-              ) : (
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    handleExecuteGoogleLogin(customGoogleName, customGoogleEmail);
-                  }}
-                  className="space-y-3"
-                >
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
-                      Your Full Name
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      <input
-                        type="text"
-                        placeholder="e.g. Ramesh Patel"
-                        value={customGoogleName}
-                        onChange={e => setCustomGoogleName(e.target.value)}
-                        required
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                      />
-                    </div>
-                  </div>
+                </div>
 
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
-                      Google Email
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      <input
-                        type="email"
-                        placeholder="name@gmail.com"
-                        value={customGoogleEmail}
-                        onChange={e => setCustomGoogleEmail(e.target.value)}
-                        required
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                      />
-                    </div>
-                  </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep('enter_phone');
+                      setErrorMessage('');
+                    }}
+                    className="w-1/3 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-2/3 py-2.5 rounded-xl bg-[#111827] hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  >
+                    {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Continue with Google'}
+                  </button>
+                </div>
+              </form>
 
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomGoogle(false)}
-                      className="w-1/3 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-2/3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2"
-                    >
-                      {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Sign In with Google'}
-                    </button>
-                  </div>
-                </form>
-              )}
+              {/* Option 2: Connect Google Cloud Client ID for 1-click popup */}
+              <div className="pt-2 border-t border-slate-200">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Or Connect Google OAuth Client ID (For 1-Click Popup):
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="xxxx.apps.googleusercontent.com"
+                    value={googleClientIdInput}
+                    onChange={e => setGoogleClientIdInput(e.target.value)}
+                    className="flex-1 p-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!googleClientIdInput.trim()) {
+                        setErrorMessage('Please enter your Google OAuth Client ID');
+                        return;
+                      }
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('sfh_google_client_id', googleClientIdInput.trim());
+                      }
+                      setSuccessMessage('Client ID saved! Opening Google popup...');
+                      setTimeout(() => {
+                        handleTriggerRealGoogleLogin();
+                      }, 400);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shrink-0 transition-colors shadow-xs"
+                  >
+                    Connect
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

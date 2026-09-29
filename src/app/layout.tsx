@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Outfit, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
@@ -54,6 +55,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${plusJakarta.variable} scroll-smooth`}>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-amber-400 selection:text-slate-950 font-sans">
+        {/* Google Identity Services for direct real Google login */}
+        <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
+        
         <AuthProvider>
           <CartProvider>
             {/* Top Return Policy Announcement Marquee */}
