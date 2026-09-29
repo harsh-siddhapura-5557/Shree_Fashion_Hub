@@ -133,16 +133,23 @@ export function AuthModal() {
     // 1. If Firebase Phone Auth is configured, use Google's Free Phone SMS!
     if (isFirebaseConfigured && auth && typeof window !== 'undefined') {
       try {
-        if (!(window as any).recaptchaVerifier) {
-          (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'firebase-recaptcha-container', {
-            size: 'invisible'
-          });
+        // Reset verifier if already initialized
+        if ((window as any).recaptchaVerifier) {
+          try {
+            (window as any).recaptchaVerifier.clear();
+          } catch {}
+          (window as any).recaptchaVerifier = null;
         }
-        const appVerifier = (window as any).recaptchaVerifier;
+
+        const appVerifier = new RecaptchaVerifier(auth, 'firebase-recaptcha-container', {
+          size: 'invisible'
+        });
+        (window as any).recaptchaVerifier = appVerifier;
+
         const confirmation = await signInWithPhoneNumber(auth, `+91${cleanedPhone}`, appVerifier);
         setConfirmationResult(confirmation);
         setStep('enter_otp');
-        setSuccessMessage(`Google SMS sent to +91 ${cleanedPhone}`);
+        setSuccessMessage(`Google SMS dispatched to +91 ${cleanedPhone}`);
         setRealSmsSent(true);
         setCooldown(45);
         setOtp('');
@@ -150,12 +157,15 @@ export function AuthModal() {
         return;
       } catch (fbErr: any) {
         console.error('Firebase Phone Auth error:', fbErr);
-        // Fall back to server OTP if Firebase fails
-        if (fbErr.code === 'auth/billing-not-enabled' || fbErr.code === 'auth/captcha-check-failed') {
-          setErrorMessage(fbErr.message || 'Google SMS verification failed. Please try again.');
-          setIsLoading(false);
-          return;
+        if ((window as any).recaptchaVerifier) {
+          try {
+            (window as any).recaptchaVerifier.clear();
+          } catch {}
+          (window as any).recaptchaVerifier = null;
         }
+        setErrorMessage(fbErr.message || `Google SMS error (${fbErr.code})`);
+        setIsLoading(false);
+        return;
       }
     }
 
