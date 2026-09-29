@@ -1,0 +1,203 @@
+import nodemailer from 'nodemailer';
+import { Order } from '@/types';
+
+// Configure transporter using env variables or fallback
+function getTransporter() {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const user = process.env.SMTP_USER || '';
+  const pass = process.env.SMTP_PASS || '';
+
+  if (user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+  }
+
+  // Fallback to test/console transport
+  return null;
+}
+
+export async function sendOrderNotifications(order: Order) {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@shreefashionhub.com';
+  const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <orders@shreefashionhub.com>';
+
+  const itemsHtml = order.items
+    .map(
+      item => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 12px 8px; vertical-align: top;">
+          <img src="${item.image}" alt="${item.title}" width="60" height="75" style="border-radius: 6px; object-fit: cover; display: block;" />
+        </td>
+        <td style="padding: 12px 8px; vertical-align: top;">
+          <strong style="color: #0b132b; font-size: 14px;">${item.title}</strong><br/>
+          <span style="color: #64748b; font-size: 13px;">Size: <strong>${item.size}</strong> | Color: <strong>${item.colorName}</strong></span><br/>
+          <span style="color: #64748b; font-size: 13px;">Qty: ${item.quantity}</span>
+        </td>
+        <td style="padding: 12px 8px; vertical-align: top; text-align: right; font-weight: 600; color: #0b132b;">
+          ₹${(item.price * item.quantity).toLocaleString('en-IN')}
+        </td>
+      </tr>
+    `
+    )
+    .join('');
+
+  // 1. Customer Email Template
+  const customerEmailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Order Confirmation - Shree Fashion Hub</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; color: #f59e0b;">SHREE FASHION HUB</h1>
+          <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.85; letter-spacing: 1px;">PREMIUM DENIM & JEANS ARCHIVE</p>
+        </div>
+
+        <!-- Success Banner -->
+        <div style="padding: 24px 24px 16px 24px; text-align: center; border-bottom: 1px solid #f1f5f9;">
+          <div style="display: inline-block; background-color: #ecfdf5; color: #059669; padding: 6px 16px; border-radius: 9999px; font-weight: 700; font-size: 14px;">
+            ✓ Order Confirmed #${order.orderNumber}
+          </div>
+          <p style="margin: 12px 0 0 0; color: #334155; font-size: 15px;">
+            Thank you, <strong>${order.customerName}</strong>! We have received your order and our artisan denim team is preparing it for dispatch.
+          </p>
+        </div>
+
+        <!-- Return Policy MANDATORY ALERT -->
+        <div style="margin: 16px 24px; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 8px; padding: 14px 16px;">
+          <div style="display: flex; align-items: center; margin-bottom: 4px;">
+            <strong style="color: #b45309; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">⚠️ Important Return Policy Notice</strong>
+          </div>
+          <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.45; font-weight: 600;">
+            Note: Return valid only for damaged/defective pieces with a complete unboxing video from start to finish.
+          </p>
+        </div>
+
+        <!-- Order Items -->
+        <div style="padding: 16px 24px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #0b132b; text-transform: uppercase; letter-spacing: 0.5px;">Order Summary</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <!-- Totals -->
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 2px solid #e2e8f0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; color: #64748b;">
+              <span>Subtotal:</span>
+              <span>₹${order.subtotal.toLocaleString('en-IN')}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; color: #64748b;">
+              <span>Shipping / Express Delivery:</span>
+              <span style="color: #059669; font-weight: 600;">FREE</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 18px; font-weight: 800; color: #0b132b;">
+              <span>Total Paid / Payable (${order.paymentMethod}):</span>
+              <span style="color: #d97706;">₹${order.totalAmount.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shipping Address -->
+        <div style="background-color: #f8fafc; padding: 18px 24px; border-top: 1px solid #e2e8f0;">
+          <h4 style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; color: #475569; letter-spacing: 0.5px;">Delivery Address</h4>
+          <p style="margin: 0; font-size: 14px; color: #1e293b; line-height: 1.5;">
+            <strong>${order.customerName}</strong><br/>
+            ${order.shippingAddress}<br/>
+            ${order.city}, ${order.state} - ${order.pincode}<br/>
+            Contact Phone: <strong>${order.customerPhone}</strong>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 20px 24px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #f1f5f9;">
+          <p style="margin: 0;">Shree Fashion Hub • Authentic Denim House</p>
+          <p style="margin: 4px 0 0 0;">Need help? Reply directly to this email or reach us anytime.</p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  // 2. Admin Alert Email Template
+  const adminEmailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><title>New Order Alert</title></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f1f5f9; padding: 24px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 10px; padding: 24px; border: 1px solid #cbd5e1;">
+        <div style="border-bottom: 2px solid #0b132b; padding-bottom: 12px; margin-bottom: 16px;">
+          <span style="background: #ef4444; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; text-transform: uppercase;">NEW CUSTOMER ORDER</span>
+          <h2 style="margin: 8px 0 0 0; color: #0b132b;">Order #${order.orderNumber} - ₹${order.totalAmount.toLocaleString('en-IN')}</h2>
+        </div>
+
+        <div style="background: #f8fafc; padding: 14px; border-radius: 6px; margin-bottom: 16px;">
+          <h4 style="margin: 0 0 6px 0; color: #334155;">Customer Details:</h4>
+          <p style="margin: 0; font-size: 14px; line-height: 1.5;">
+            Name: <strong>${order.customerName}</strong><br/>
+            Phone: <a href="tel:${order.customerPhone}" style="color: #2563eb; font-weight: 700;">${order.customerPhone}</a><br/>
+            Email: ${order.customerEmail}<br/>
+            Address: ${order.shippingAddress}, ${order.city}, ${order.state} - ${order.pincode}<br/>
+            Payment Mode: <strong>${order.paymentMethod}</strong>
+          </p>
+        </div>
+
+        <h4 style="margin: 0 0 10px 0; color: #334155;">Ordered Items:</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          <tbody>${itemsHtml}</tbody>
+        </table>
+
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="/admin" style="background: #0b132b; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; display: inline-block;">
+            Open Admin Dashboard
+          </a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      // Send to Customer
+      await transporter.sendMail({
+        from: fromEmail,
+        to: order.customerEmail,
+        subject: `Your Shree Fashion Hub Order #${order.orderNumber} is Confirmed! 👖`,
+        html: customerEmailHtml
+      });
+
+      // Send to Admin
+      await transporter.sendMail({
+        from: fromEmail,
+        to: adminEmail,
+        subject: `🚨 [New Order] #${order.orderNumber} by ${order.customerName} (₹${order.totalAmount})`,
+        html: adminEmailHtml
+      });
+      return { success: true, delivered: true };
+    } catch (err) {
+      console.error('SMTP Delivery error:', err);
+      // Fallback log
+      return { success: true, delivered: false, error: String(err) };
+    }
+  } else {
+    // Development mode logger
+    console.log(`[EMAIL DISPATCH SIMULATOR]`);
+    console.log(`[TO CUSTOMER: ${order.customerEmail}] Order #${order.orderNumber} confirmation dispatched.`);
+    console.log(`[TO ADMIN: ${adminEmail}] Order #${order.orderNumber} alert dispatched.`);
+    return { success: true, delivered: false, simulated: true };
+  }
+}
