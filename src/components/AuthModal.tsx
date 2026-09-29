@@ -140,22 +140,11 @@ export function AuthModal() {
       const code = result.debugOtp || String(Math.floor(100000 + Math.random() * 900000));
       setDebugOtp(code);
       if (result.token) setOtpToken(result.token);
-      setRealSmsSent(true);
+      setRealSmsSent(!!result.smsDelivered);
       setStep('enter_otp');
-      setSuccessMessage(`WhatsApp OTP generated: ${code}`);
+      setSuccessMessage(`OTP sent to +91 ${cleanedPhone}. Please check your phone messages.`);
       setCooldown(45);
       setOtp('');
-
-      // Open WhatsApp with pre-filled OTP verification message
-      const waUrl = `https://wa.me/919714475575?text=${encodeURIComponent(
-        `*Shree Fashion Hub Verification*\n` +
-        `Customer: ${customerName.trim() || 'Valued Customer'}\n` +
-        `Mobile: +91 ${cleanedPhone}\n` +
-        `My OTP Code is: *${code}*`
-      )}`;
-      if (typeof window !== 'undefined') {
-        window.open(waUrl, '_blank');
-      }
     } else {
       setErrorMessage(result.message || 'Failed to generate OTP');
     }
@@ -499,33 +488,19 @@ export function AuthModal() {
           {/* Real-time SMS Delivery Status (Production SMS Experience) */}
           {step === 'enter_otp' && (
             <div className="space-y-2.5">
-              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-2.5 shadow-xs">
+              <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 space-y-1.5 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
-                    <MessageCircle className="w-4 h-4 text-emerald-600" />
-                    WhatsApp Code for +91 {cleanedPhone}
+                  <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-blue-600" />
+                    SMS Dispatched to +91 {cleanedPhone}
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
-                    WhatsApp Active
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                    Direct SMS
                   </span>
                 </div>
-                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-                  We generated your 6-digit verification code. Click below to confirm via WhatsApp or enter it manually:
+                <p className="text-xs text-blue-800 leading-relaxed font-medium">
+                  We have sent a 6-digit verification code to your mobile phone. Please check your SMS inbox and enter the code below:
                 </p>
-                <a
-                  href={`https://wa.me/919714475575?text=${encodeURIComponent(
-                    `*Shree Fashion Hub Login Verification*\n` +
-                    `Customer: ${customerName.trim() || 'Valued Customer'}\n` +
-                    `Mobile: +91 ${cleanedPhone}\n` +
-                    `My OTP Code is: *${debugOtp || '123456'}*`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
-                >
-                  <MessageCircle className="w-4 h-4 shrink-0" />
-                  <span>Open WhatsApp to Confirm (Code: {debugOtp || '123456'})</span>
-                </a>
               </div>
             </div>
           )}
@@ -617,19 +592,19 @@ export function AuthModal() {
                   </div>
                 )}
 
-                {/* Action Buttons: WhatsApp OTP + Instant 1-Click Login */}
+                {/* Action Buttons: Phone OTP + Instant 1-Click Login */}
                 <div className="space-y-2 pt-1">
                   <button
                     type="submit"
                     disabled={isLoading || !isPhoneValid || (authMode === 'signup' && !customerName.trim())}
-                    className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full py-3.5 rounded-xl bg-[#111827] hover:bg-[#1E3A8A] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isLoading ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <MessageCircle className="w-4 h-4 shrink-0" />
-                        <span>Continue with WhatsApp OTP</span>
+                        <Smartphone className="w-4 h-4 shrink-0" />
+                        <span>{authMode === 'signup' ? 'Send Verification OTP' : 'Continue with OTP'}</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -639,9 +614,9 @@ export function AuthModal() {
                     type="button"
                     onClick={handleInstantLogin}
                     disabled={isLoading || !isPhoneValid || (authMode === 'signup' && !customerName.trim())}
-                    className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border border-slate-300"
                   >
-                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
                     <span>Instant 1-Click Login (Fast & Free)</span>
                   </button>
                 </div>
