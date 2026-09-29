@@ -477,33 +477,31 @@ export function AuthModal() {
             </div>
           )}
 
-          {/* Success Message */}
-          {successMessage && (
+          {/* Success Message (Only on step 1) */}
+          {successMessage && step !== 'enter_otp' && (
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{successMessage}</span>
             </div>
           )}
 
-          {/* Real-time Email & SMS Delivery Status */}
+          {/* Clean Delivery Status Card on Step 2 */}
           {step === 'enter_otp' && (
-            <div className="space-y-2.5">
-              <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-300 text-emerald-950 space-y-1.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                    <Mail className="w-4 h-4 text-emerald-600" />
-                    {customerEmail.trim() ? `OTP Dispatched to ${customerEmail.trim()}` : `OTP Sent to +91 ${cleanedPhone}`}
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
-                    Dispatched
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-                  {customerEmail.trim()
-                    ? `Please check your email inbox at ${customerEmail.trim()} for your 6-digit verification code:`
-                    : `Please check your text messages for your 6-digit verification code:`}
-                </p>
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 space-y-1 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-emerald-600" />
+                  Code sent to {customerEmail.trim() || `+91 ${cleanedPhone}`}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Dispatched
+                </span>
               </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {customerEmail.trim()
+                  ? `Please check your email inbox at ${customerEmail.trim()} for your 6-digit verification code.`
+                  : `Please check your phone text messages for your 6-digit verification code.`}
+              </p>
             </div>
           )}
 
@@ -707,17 +705,6 @@ export function AuthModal() {
                   autoFocus
                   className="w-full text-center tracking-[0.5em] text-2xl font-black py-3 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:outline-none bg-slate-50 text-slate-900"
                 />
-
-                <div className="pt-2 flex items-center justify-between px-1">
-                  <span className="text-[11px] text-slate-500 font-medium">Your code: <strong className="text-slate-800 font-mono">{debugOtp || '123456'}</strong></span>
-                  <button
-                    type="button"
-                    onClick={() => setOtp(debugOtp || '123456')}
-                    className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
-                  >
-                    ⚡ Auto-Fill Code
-                  </button>
-                </div>
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-500">
