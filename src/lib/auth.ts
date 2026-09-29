@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { UserSession } from '@/types';
 import { ADMIN_SECRET_TOKEN } from '@/lib/security';
 import { sendRealPhoneOtp } from '@/lib/sms';
+import { sendOtpEmail } from '@/lib/email';
 
 interface OtpStoreItem {
   otp: string;
@@ -124,17 +125,29 @@ export async function requestOtp(
   // Attempt real SMS gateway dispatch (Fast2SMS or Twilio if keys configured)
   const smsResult = await sendRealPhoneOtp(sanitized, generatedOtp);
 
-  console.log(`[OTP DISPATCH] Mobile: ${sanitized} | Real SMS Sent: ${smsResult.success} | Code: ${generatedOtp}`);
+  // If customer email provided, dispatch luxury OTP Email via Mailtrap / SMTP
+  let emailDelivered = false;
+  if (email && email.includes('@')) {
+    const emailResult = await sendOtpEmail(email, generatedOtp, name);
+    emailDelivered = emailResult.delivered;
+  }
+
+  console.log(`[OTP DISPATCH] Mobile: ${sanitized} | Real SMS Sent: ${smsResult.success} | Email Sent: ${emailDelivered} | Code: ${generatedOtp}`);
+
+  let dispatchMessage = `Verification code sent to +91 ${sanitized.slice(-10)}`;
+  if (emailDelivered) {
+    dispatchMessage = `Verification code sent to your email (${email}) and mobile!`;
+  } else if (smsResult.success) {
+    dispatchMessage = `Real SMS with 6-digit OTP sent to +91 ${sanitized.slice(-10)}!`;
+  }
 
   return {
     success: true,
-    message: smsResult.success 
-      ? `Real SMS with 6-digit OTP sent to +91 ${sanitized.slice(-10)}!`
-      : `Verification code generated for +91 ${sanitized.slice(-10)}`,
+    message: dispatchMessage,
     debugOtp: generatedOtp,
     token,
-    smsDelivered: smsResult.success,
-    smsProvider: smsResult.provider,
+    smsDelivered: smsResult.success || emailDelivered,
+    smsProvider: emailDelivered ? 'Mailtrap/SMTP' : smsResult.provider,
     cooldownSeconds: 45
   };
 }

@@ -201,3 +201,92 @@ export async function sendOrderNotifications(order: Order) {
     return { success: true, delivered: false, simulated: true };
   }
 }
+
+/**
+ * Send branded, luxury OTP verification email to customer via Mailtrap / SMTP
+ */
+export async function sendOtpEmail(
+  email: string, 
+  otp: string, 
+  customerName?: string
+): Promise<{ success: boolean; delivered: boolean; error?: string }> {
+  const fromEmail = process.env.SMTP_FROM || '"Shree Fashion Hub" <auth@shreefashionhub.com>';
+  const name = customerName?.trim() || 'Valued Customer';
+
+  const otpHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Your Verification Code - Shree Fashion Hub</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
+      <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; color: #f59e0b;">SHREE FASHION HUB</h1>
+          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.85; letter-spacing: 1px;">PREMIUM DENIM & JEANS ARCHIVE</p>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 32px 24px; text-align: center;">
+          <div style="display: inline-block; background-color: #eff6ff; color: #1d4ed8; padding: 6px 16px; border-radius: 9999px; font-weight: 700; font-size: 13px; margin-bottom: 16px;">
+            🔐 Secure Account Verification
+          </div>
+
+          <h2 style="margin: 0 0 8px 0; font-size: 20px; color: #0f172a; font-weight: 700;">
+            Hello, ${name}
+          </h2>
+          <p style="margin: 0 0 24px 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+            Use the 6-digit verification code below to complete your login or registration at Shree Fashion Hub:
+          </p>
+
+          <!-- OTP Box -->
+          <div style="background: #f8fafc; border: 2px dashed #0b132b; border-radius: 12px; padding: 20px 16px; margin: 0 auto 24px auto; max-width: 320px;">
+            <span style="font-size: 34px; font-weight: 900; letter-spacing: 10px; color: #0b132b; font-family: 'Courier New', Courier, monospace; display: block; padding-left: 10px;">
+              ${otp}
+            </span>
+          </div>
+
+          <p style="margin: 0 0 8px 0; color: #475569; font-size: 13px; font-weight: 500;">
+            ⏱️ This OTP is valid for <strong>10 minutes</strong>.
+          </p>
+          <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+            If you did not request this verification code, please ignore this email.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background-color: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 12px;">
+          <p style="margin: 0; font-weight: 600; color: #64748b;">Shree Fashion Hub • Authentic Denim House</p>
+          <p style="margin: 4px 0 0 0;">WhatsApp Support: +91 97144 75575</p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: fromEmail,
+        to: email,
+        subject: `Your Verification Code: ${otp} - Shree Fashion Hub 👖`,
+        html: otpHtml
+      });
+      console.log(`[EMAIL OTP DELIVERED via SMTP] To: ${email} | OTP: ${otp}`);
+      return { success: true, delivered: true };
+    } catch (err) {
+      console.error('[SMTP OTP Error]', err);
+      return { success: true, delivered: false, error: String(err) };
+    }
+  } else {
+    console.log(`[EMAIL OTP SIMULATION] To: ${email} | Code: ${otp}`);
+    return { success: true, delivered: false };
+  }
+}
+
