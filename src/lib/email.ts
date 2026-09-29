@@ -277,12 +277,9 @@ export async function sendOtpEmail(
             Use the 6-digit verification code below to complete your login or registration at Shree Fashion Hub:
           </p>
 
-          <!-- OTP Box (Huge, Bold, Crystal Clear) -->
-          <div style="background: #f8fafc; border: 2.5px solid #0b132b; border-radius: 14px; padding: 22px 18px; margin: 0 auto 24px auto; max-width: 360px; box-shadow: 0 4px 14px rgba(11, 19, 43, 0.08);">
-            <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 2px; color: #b45309; margin-bottom: 8px;">
-              VERIFICATION CODE
-            </div>
-            <span style="font-size: 48px; font-weight: 900; letter-spacing: 16px; color: #0b132b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; line-height: 1; padding-left: 16px;">
+          <!-- OTP Box (Matching Screenshot Exactly) -->
+          <div style="border: 2.5px dashed #0b132b; border-radius: 20px; padding: 26px 16px; margin: 0 auto 28px auto; max-width: 330px; text-align: center; background: #ffffff;">
+            <span style="font-size: 54px; font-weight: 800; letter-spacing: 22px; color: #0b132b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: inline-block; line-height: 1; padding-left: 22px;">
               ${otp}
             </span>
           </div>
