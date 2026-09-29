@@ -41,9 +41,15 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/brand/sf-luxury-logo.png',
-    shortcut: '/brand/sf-luxury-logo.png',
-    apple: '/brand/sf-luxury-logo.png',
+    icon: [
+      { url: '/favicon.ico?v=2', sizes: 'any' },
+      { url: '/icon.png?v=2', type: 'image/png' },
+      { url: '/brand/sf-luxury-logo.png?v=2', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico?v=2',
+    apple: [
+      { url: '/apple-icon.png?v=2', sizes: '180x180', type: 'image/png' },
+    ],
   },
 };
 
@@ -54,6 +60,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${outfit.variable} ${plusJakarta.variable} scroll-smooth`}>
+      <head>
+        <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
+        <link rel="icon" type="image/png" href="/brand/sf-luxury-logo.png?v=2" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=2" />
+      </head>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-amber-400 selection:text-slate-950 font-sans">
         {/* Google Identity Services for direct real Google login */}
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
