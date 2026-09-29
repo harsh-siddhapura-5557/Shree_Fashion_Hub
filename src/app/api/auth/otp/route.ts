@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const clientIp = req.headers.get('x-forwarded-for') || 'client-auth';
     const body = await req.json();
-    const { action, phone, otp, token } = body;
+    const { action, phone, otp, token, name, email } = body;
 
     if (action === 'request') {
       if (!phone) {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         }, { status: 429 });
       }
 
-      const result = requestOtp(phone);
+      const result = await requestOtp(phone, name, email);
       return NextResponse.json(result, { status: result.success ? 200 : 400 });
     }
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Phone and OTP are required' }, { status: 400 });
       }
 
-      const result = verifyOtp(phone, otp, token);
+      const result = verifyOtp(phone, otp, token, name, email);
       return NextResponse.json(result, { status: result.success ? 200 : 400 });
     }
 

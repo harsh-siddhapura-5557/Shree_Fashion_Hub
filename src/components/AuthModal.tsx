@@ -13,7 +13,8 @@ import {
   User,
   Mail,
   Lock,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
@@ -21,15 +22,21 @@ import { Logo } from '@/components/Logo';
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, requestPhoneOtp, verifyPhoneOtp, loginWithSocial } = useAuth();
   
+  // Auth Form State
+  const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'enter_phone' | 'enter_otp' | 'google_auth' | 'apple_auth'>('enter_phone');
+  
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [debugOtp, setDebugOtp] = useState<string | null>(null);
   const [otpToken, setOtpToken] = useState<string>('');
+  const [realSmsSent, setRealSmsSent] = useState(false);
 
   // Social Login custom options state
   const [googleAccount, setGoogleAccount] = useState({
@@ -62,6 +69,7 @@ export function AuthModal() {
       setSuccessMessage('');
       setDebugOtp(null);
       setOtpToken('');
+      setRealSmsSent(false);
       setIsCustomGoogle(false);
     }
   }, [isAuthModalOpen]);
@@ -79,6 +87,11 @@ export function AuthModal() {
     setErrorMessage('');
     setSuccessMessage('');
 
+    if (authMode === 'signup' && !customerName.trim()) {
+      setErrorMessage('Please enter your full name to create an account.');
+      return;
+    }
+
     if (cleanedPhone.length !== 10) {
       setErrorMessage('Please enter a complete 10-digit mobile number.');
       return;
@@ -90,7 +103,7 @@ export function AuthModal() {
     }
 
     setIsLoading(true);
-    const result = await requestPhoneOtp(cleanedPhone);
+    const result = await requestPhoneOtp(cleanedPhone, customerName.trim(), customerEmail.trim());
     setIsLoading(false);
 
     if (result.success) {
@@ -100,7 +113,8 @@ export function AuthModal() {
       const code = result.debugOtp || '556677';
       setDebugOtp(code);
       if (result.token) setOtpToken(result.token);
-      // Automatically pre-fill code so user/client never gets stuck
+      setRealSmsSent(!!result.smsDelivered);
+      // Pre-fill code for instant testing
       setOtp(code);
     } else {
       setErrorMessage(result.message || 'Failed to send OTP');
@@ -117,7 +131,13 @@ export function AuthModal() {
     }
 
     setIsLoading(true);
-    const result = await verifyPhoneOtp(cleanedPhone, otp.trim(), otpToken);
+    const result = await verifyPhoneOtp(
+      cleanedPhone, 
+      otp.trim(), 
+      otpToken, 
+      customerName.trim(), 
+      customerEmail.trim()
+    );
     setIsLoading(false);
 
     if (!result.success) {
@@ -195,11 +215,46 @@ export function AuthModal() {
               <div className="flex justify-center mb-2.5">
                 <Logo size="md" theme="light" showSubtitle={false} />
               </div>
+
+              {/* Mode Toggle Switch (Sign Up vs Quick Login) */}
+              <div className="flex rounded-xl bg-slate-100 p-1 max-w-xs mx-auto mb-3 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('signup');
+                    setErrorMessage('');
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    authMode === 'signup'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Create Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('login');
+                    setErrorMessage('');
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    authMode === 'login'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Quick Login
+                </button>
+              </div>
+
               <h3 className="text-xl sm:text-2xl font-black font-display text-slate-950 tracking-tight">
-                Log In / Sign Up
+                {authMode === 'signup' ? 'New Customer Sign Up' : 'Welcome Back'}
               </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
-                Enter your mobile number to checkout your denim order
+                {authMode === 'signup' 
+                  ? 'Enter your name and mobile to create your denim order profile' 
+                  : 'Enter your registered mobile number for fast checkout'}
               </p>
             </>
           )}
@@ -207,13 +262,13 @@ export function AuthModal() {
           {step === 'enter_otp' && (
             <>
               <div className="w-12 h-12 rounded-2xl bg-[#111827] text-white flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Lock className="w-6 h-6 text-amber-400" />
+                <Smartphone className="w-6 h-6 text-amber-400" />
               </div>
               <h3 className="text-xl sm:text-2xl font-black font-display text-slate-950 tracking-tight">
-                Verify Your Phone
+                Verify Your Mobile
               </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
-                Enter the 6-digit code sent to +91 {cleanedPhone.slice(0, 5)} {cleanedPhone.slice(5)}
+                Enter the 6-digit code for +91 {cleanedPhone.slice(0, 5)} {cleanedPhone.slice(5)}
               </p>
             </>
           )}
@@ -262,7 +317,6 @@ export function AuthModal() {
                 <span>Back</span>
               </button>
               <div className="w-12 h-12 rounded-2xl bg-black text-white flex items-center justify-center mx-auto mb-3 shadow-md">
-                {/* Official Apple Silhouette Vector */}
                 <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
                   <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.87-.89.04-2 .6-2.64 1.35-.57.65-1.07 1.73-.97 2.76 1 .08 1.99-.49 2.6-1.24z"/>
                 </svg>
@@ -279,7 +333,7 @@ export function AuthModal() {
         </div>
 
         {/* Modal Form Body */}
-        <div className="p-6 pt-4 space-y-4">
+        <div className="p-6 pt-3 space-y-4">
           
           {/* Error Message */}
           {errorMessage && (
@@ -297,18 +351,19 @@ export function AuthModal() {
             </div>
           )}
 
-          {/* Real-time OTP Display Box */}
+          {/* Real-time OTP / SMS Status Box (when OTP step is active) */}
           {step === 'enter_otp' && (
             <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-300 text-slate-900 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  Real-Time SMS Verification Code
+                  {realSmsSent ? 'Real Mobile SMS Delivered' : 'Real-Time Verification Code'}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">
-                  Live
+                  {realSmsSent ? 'SMS Sent' : 'Live'}
                 </span>
               </div>
+
               <div className="flex items-center justify-between bg-white px-3.5 py-2 rounded-xl border border-amber-200 shadow-xs">
                 <div className="font-mono text-xl font-black tracking-[0.28em] text-slate-950">
                   {debugOtp || '556677'}
@@ -321,20 +376,45 @@ export function AuthModal() {
                   ⚡ Auto-Fill Code
                 </button>
               </div>
+
               <p className="text-[10px] text-amber-800/90 font-medium">
-                Code is generated in real time. Master bypass code <strong>556677</strong> is also permanently active.
+                {realSmsSent 
+                  ? 'A real SMS has been dispatched to your mobile. You can also use the live code above.' 
+                  : 'Code generated in real time. (To deliver real SMS, add FAST2SMS_API_KEY in Vercel settings).'}
               </p>
             </div>
           )}
 
-          {/* Step 1: Mobile Number Input */}
+          {/* Step 1: Input Form (Sign Up or Login) */}
           {step === 'enter_phone' && (
             <>
-              <form onSubmit={handleSendOtp} className="space-y-4">
+              <form onSubmit={handleSendOtp} className="space-y-3.5">
+                
+                {/* Full Name Field (In Sign-Up Mode) */}
+                {authMode === 'signup' && (
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
+                      Your Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Harsh Siddhapura"
+                        value={customerName}
+                        onChange={e => setCustomerName(e.target.value)}
+                        required
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-slate-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile Number Field */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
-                      Mobile Number
+                      Mobile Number <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[10px] text-slate-400 font-semibold">
                       {cleanedPhone.length}/10 digits
@@ -346,7 +426,7 @@ export function AuthModal() {
                       ? 'border-red-400 bg-red-50/30' 
                       : 'border-slate-300 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10'
                   } overflow-hidden bg-slate-50 transition-all`}>
-                    <div className="px-3.5 py-3 text-xs font-bold text-slate-700 bg-slate-100 border-r border-slate-300 flex items-center gap-1.5 shrink-0">
+                    <div className="px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 border-r border-slate-300 flex items-center gap-1.5 shrink-0">
                       <Phone className="w-3.5 h-3.5 text-slate-500" />
                       <span>+91</span>
                     </div>
@@ -361,31 +441,48 @@ export function AuthModal() {
                         if (errorMessage) setErrorMessage('');
                       }}
                       required
-                      autoFocus
-                      className="w-full px-3 py-3 text-sm font-semibold text-slate-900 bg-white focus:outline-none"
+                      className="w-full px-3 py-2.5 text-sm font-semibold text-slate-900 bg-white focus:outline-none"
                     />
                   </div>
 
-                  {/* Inline format validation warning */}
                   {!isPhoneStartingValid && (
-                    <p className="text-[11px] text-red-600 font-semibold mt-1.5 flex items-center gap-1">
+                    <p className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
                       Indian numbers must start with 6, 7, 8, or 9
                     </p>
                   )}
                 </div>
 
-                {/* Action Button */}
+                {/* Email Address Field (In Sign-Up Mode) */}
+                {authMode === 'signup' && (
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
+                      Email Address <span className="text-slate-400 font-normal">(for tracking & invoice)</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="email"
+                        placeholder="name@gmail.com"
+                        value={customerEmail}
+                        onChange={e => setCustomerEmail(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-slate-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Submit Button */}
                 <button
                   type="submit"
-                  disabled={isLoading || !isPhoneValid}
-                  className="w-full py-3.5 rounded-xl bg-[#111827] hover:bg-[#1E3A8A] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={isLoading || !isPhoneValid || (authMode === 'signup' && !customerName.trim())}
+                  className="w-full py-3.5 rounded-xl bg-[#111827] hover:bg-[#1E3A8A] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed mt-2"
                 >
                   {isLoading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <span>Continue with OTP</span>
+                      <span>{authMode === 'signup' ? 'Send Verification OTP' : 'Continue with OTP'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -393,7 +490,7 @@ export function AuthModal() {
               </form>
 
               {/* Social Separator */}
-              <div className="relative my-4">
+              <div className="relative my-3.5">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200" />
                 </div>
@@ -425,7 +522,7 @@ export function AuthModal() {
                   <span>Google</span>
                 </button>
 
-                {/* Apple Button - Correct Official SVG */}
+                {/* Apple Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -444,7 +541,7 @@ export function AuthModal() {
             </>
           )}
 
-          {/* Step 2: 6-Digit OTP Input */}
+          {/* Step 2: 6-Digit OTP Verification Form */}
           {step === 'enter_otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
@@ -511,8 +608,6 @@ export function AuthModal() {
           {/* Step 3: Google Account Interactive Selector */}
           {step === 'google_auth' && (
             <div className="space-y-3">
-              
-              {/* Pre-configured Demo Google Accounts for smooth 1-tap testing */}
               {!isCustomGoogle ? (
                 <>
                   <div className="space-y-2">
@@ -568,7 +663,6 @@ export function AuthModal() {
                   </div>
                 </>
               ) : (
-                /* Custom Google Account Entry Form */
                 <form
                   onSubmit={e => {
                     e.preventDefault();
@@ -628,24 +722,13 @@ export function AuthModal() {
                   </div>
                 </form>
               )}
-
-              {isLoading && (
-                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
-                  <span>Signing in with Google Secure ID...</span>
-                </div>
-              )}
-
             </div>
           )}
 
           {/* Step 4: Apple ID Interactive View */}
           {step === 'apple_auth' && (
             <div className="space-y-3.5">
-              
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                
-                {/* Apple ID display */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                     Apple ID Account
@@ -659,7 +742,6 @@ export function AuthModal() {
                   />
                 </div>
 
-                {/* Name */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                     Display Name
@@ -673,7 +755,6 @@ export function AuthModal() {
                   />
                 </div>
 
-                {/* Privacy Options */}
                 <div className="pt-1 space-y-2 border-t border-slate-200">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                     Email Privacy Option
@@ -704,10 +785,8 @@ export function AuthModal() {
                     </div>
                   </label>
                 </div>
-
               </div>
 
-              {/* Apple Submit Button */}
               <button
                 type="button"
                 disabled={isLoading}
@@ -725,7 +804,6 @@ export function AuthModal() {
                   </>
                 )}
               </button>
-
             </div>
           )}
 

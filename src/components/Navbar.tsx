@@ -49,7 +49,7 @@ export function Navbar() {
                 {user?.name?.[0] || 'U'}
               </div>
               <span className="text-xs font-semibold text-slate-800 max-w-[90px] sm:max-w-[130px] truncate">
-                {user?.phone || user?.name}
+                {user?.name || user?.phone}
               </span>
               <button
                 onClick={logout}

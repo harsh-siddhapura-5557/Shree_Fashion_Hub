@@ -1,10 +1,13 @@
 import crypto from 'crypto';
 import { UserSession } from '@/types';
 import { ADMIN_SECRET_TOKEN } from '@/lib/security';
+import { sendRealPhoneOtp } from '@/lib/sms';
 
 interface OtpStoreItem {
   otp: string;
   phone: string;
+  name?: string;
+  email?: string;
   expiresAt: number;
   attempts: number;
   resendAvailableAt: number;
@@ -73,13 +76,19 @@ export function verifyOtpToken(phone: string, inputOtp: string, token: string): 
   }
 }
 
-export function requestOtp(phone: string): { 
+export async function requestOtp(
+  phone: string, 
+  name?: string, 
+  email?: string
+): Promise<{ 
   success: boolean; 
   message: string; 
   cooldownSeconds?: number; 
   debugOtp?: string;
   token?: string;
-} {
+  smsDelivered?: boolean;
+  smsProvider?: string;
+}> {
   if (!isValidIndianPhone(phone)) {
     return {
       success: false,
@@ -97,28 +106,42 @@ export function requestOtp(phone: string): {
   // Create stateless verification token
   const token = generateOtpToken(sanitized, generatedOtp, expiresAt);
 
-  // Also cache in memory for local fallback
+  // Cache in memory for local fallback
   otpCache.set(sanitized, {
     otp: generatedOtp,
     phone: sanitized,
+    name: name?.trim(),
+    email: email?.trim(),
     expiresAt,
     attempts: 0,
     resendAvailableAt: now + 45 * 1000 // 45 seconds cooldown
   });
 
-  console.log(`[REAL-TIME OTP GENERATED] Phone: ${sanitized} | Code: ${generatedOtp}`);
+  // Attempt real SMS gateway dispatch (Fast2SMS or Twilio if keys configured)
+  const smsResult = await sendRealPhoneOtp(sanitized, generatedOtp);
+
+  console.log(`[OTP DISPATCH] Mobile: ${sanitized} | Real SMS Sent: ${smsResult.success} | Code: ${generatedOtp}`);
 
   return {
     success: true,
-    message: `Secure 6-digit verification code generated for ${sanitized.slice(0, 6)}****${sanitized.slice(-2)}`,
-    // Always provide OTP in response so client can test and verify in real time
+    message: smsResult.success 
+      ? `Real SMS with 6-digit OTP sent to +91 ${sanitized.slice(-10)}!`
+      : `Verification code generated for +91 ${sanitized.slice(-10)}`,
     debugOtp: generatedOtp,
     token,
+    smsDelivered: smsResult.success,
+    smsProvider: smsResult.provider,
     cooldownSeconds: 45
   };
 }
 
-export function verifyOtp(phone: string, inputOtp: string, token?: string): { 
+export function verifyOtp(
+  phone: string, 
+  inputOtp: string, 
+  token?: string,
+  customerName?: string,
+  customerEmail?: string
+): { 
   success: boolean; 
   message: string; 
   session?: UserSession 
@@ -128,7 +151,7 @@ export function verifyOtp(phone: string, inputOtp: string, token?: string): {
 
   let isVerified = false;
 
-  // 1. Universal Master Bypass Code for flawless client review & testing
+  // 1. Universal Master Bypass Code for seamless client testing
   if (cleanOtp === '556677' || cleanOtp === '123456') {
     isVerified = true;
   }
@@ -141,28 +164,31 @@ export function verifyOtp(phone: string, inputOtp: string, token?: string): {
   }
 
   // 3. In-memory record verification
-  if (!isVerified) {
-    const record = otpCache.get(sanitized);
-    if (record) {
-      if (record.expiresAt >= Date.now() && record.otp === cleanOtp) {
-        isVerified = true;
-        otpCache.delete(sanitized);
-      }
+  let cachedRecord = otpCache.get(sanitized);
+  if (!isVerified && cachedRecord) {
+    if (cachedRecord.expiresAt >= Date.now() && cachedRecord.otp === cleanOtp) {
+      isVerified = true;
+      otpCache.delete(sanitized);
     }
   }
 
   if (!isVerified) {
     return {
       success: false,
-      message: 'Invalid verification code. Please check the code shown on screen or use master code 556677.'
+      message: 'Invalid verification code. Please check the code or use master code 556677.'
     };
   }
 
-  // Verification succeeded
+  // Determine final customer name and email
+  const finalName = customerName?.trim() || cachedRecord?.name || `Customer ${sanitized.slice(-4)}`;
+  const finalEmail = customerEmail?.trim() || cachedRecord?.email || `${sanitized.slice(-10)}@shreefashionhub.com`;
+
+  // Verification succeeded - create rich session with user's actual name
   const session: UserSession = {
     id: `usr-${Date.now()}`,
-    name: `Customer ${sanitized.slice(-4)}`,
+    name: finalName,
     phone: sanitized,
+    email: finalEmail,
     authProvider: 'phone_otp',
     role: sanitized.includes('9999999999') || sanitized.includes('9825144210') ? 'admin' : 'customer'
   };
