@@ -6,11 +6,17 @@ import { Order } from '@/types';
 // Configure transporter using env variables or fallback
 function getTransporter() {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = Number(process.env.SMTP_PORT) || 587;
+  const port = Number(process.env.SMTP_PORT) || 465;
   const user = process.env.SMTP_USER || '';
   const pass = process.env.SMTP_PASS || '';
 
   if (user && pass) {
+    if (host.includes('gmail.com')) {
+      return nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass }
+      });
+    }
     return nodemailer.createTransport({
       host,
       port,
