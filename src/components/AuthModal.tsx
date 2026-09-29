@@ -19,6 +19,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
 
+const DEFAULT_GOOGLE_CLIENT_ID = '968681730725-4mnth4b1v2hl9as446dd77jibns4h75r.apps.googleusercontent.com';
+
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, requestPhoneOtp, verifyPhoneOtp, loginWithSocial } = useAuth();
   
@@ -54,6 +56,33 @@ export function AuthModal() {
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  // Google OAuth hash token listener (for popup / redirect fallback)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      if (accessToken) {
+        window.history.replaceState(null, '', window.location.pathname);
+        setIsLoading(true);
+        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
+          .then(res => res.json())
+          .then(async profile => {
+            if (profile.email) {
+              await loginWithSocial('google', {
+                name: profile.name || profile.given_name || 'Google Customer',
+                email: profile.email
+              });
+              closeAuthModal();
+            }
+          })
+          .catch(console.error)
+          .finally(() => setIsLoading(false));
+      }
+    }
+  }, [loginWithSocial, closeAuthModal]);
 
   // Reset modal state on open
   useEffect(() => {
@@ -144,9 +173,9 @@ export function AuthModal() {
   const handleTriggerRealGoogleLogin = () => {
     setErrorMessage('');
     const savedClientId = typeof window !== 'undefined' ? localStorage.getItem('sfh_google_client_id') : null;
-    const activeClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || savedClientId;
+    const activeClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || savedClientId || DEFAULT_GOOGLE_CLIENT_ID;
 
-    if (activeClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
       try {
         setIsLoading(true);
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
@@ -189,8 +218,12 @@ export function AuthModal() {
       }
     }
 
-    // If client ID is not configured yet, open clean direct Google connect step (NO DUMMY USERS)
-    setStep('google_auth');
+    // Direct Google OAuth standard redirect fallback
+    if (typeof window !== 'undefined') {
+      const redirectUri = window.location.origin;
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${activeClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=openid%20email%20profile&prompt=select_account`;
+      window.location.href = googleAuthUrl;
+    }
   };
 
   // Google Login Handler
