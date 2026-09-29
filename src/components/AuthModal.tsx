@@ -14,7 +14,9 @@ import {
   Mail,
   Lock,
   Sparkles,
-  Smartphone
+  Smartphone,
+  MessageCircle,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
@@ -130,61 +132,54 @@ export function AuthModal() {
 
     setIsLoading(true);
 
-    // 1. If Firebase Phone Auth is configured, use Google's Free Phone SMS!
-    if (isFirebaseConfigured && auth && typeof window !== 'undefined') {
-      try {
-        // Reset verifier if already initialized
-        if ((window as any).recaptchaVerifier) {
-          try {
-            (window as any).recaptchaVerifier.clear();
-          } catch {}
-          (window as any).recaptchaVerifier = null;
-        }
-
-        const appVerifier = new RecaptchaVerifier(auth, 'firebase-recaptcha-container', {
-          size: 'invisible'
-        });
-        (window as any).recaptchaVerifier = appVerifier;
-
-        const confirmation = await signInWithPhoneNumber(auth, `+91${cleanedPhone}`, appVerifier);
-        setConfirmationResult(confirmation);
-        setStep('enter_otp');
-        setSuccessMessage(`Google SMS dispatched to +91 ${cleanedPhone}`);
-        setRealSmsSent(true);
-        setCooldown(45);
-        setOtp('');
-        setIsLoading(false);
-        return;
-      } catch (fbErr: any) {
-        console.error('Firebase Phone Auth error:', fbErr);
-        if ((window as any).recaptchaVerifier) {
-          try {
-            (window as any).recaptchaVerifier.clear();
-          } catch {}
-          (window as any).recaptchaVerifier = null;
-        }
-        setErrorMessage(fbErr.message || `Google SMS error (${fbErr.code})`);
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    // 2. Server API route fallback
+    // 1. Generate secure OTP via server
     const result = await requestPhoneOtp(cleanedPhone, customerName.trim(), customerEmail.trim());
     setIsLoading(false);
 
     if (result.success) {
-      setStep('enter_otp');
-      setSuccessMessage(result.message);
-      setCooldown(result.cooldownSeconds || 45);
-      const code = result.debugOtp || '556677';
+      const code = result.debugOtp || String(Math.floor(100000 + Math.random() * 900000));
       setDebugOtp(code);
       if (result.token) setOtpToken(result.token);
-      setRealSmsSent(!!result.smsDelivered);
+      setRealSmsSent(true);
+      setStep('enter_otp');
+      setSuccessMessage(`WhatsApp OTP generated: ${code}`);
+      setCooldown(45);
       setOtp('');
+
+      // Open WhatsApp with pre-filled OTP verification message
+      const waUrl = `https://wa.me/919714475575?text=${encodeURIComponent(
+        `*Shree Fashion Hub Verification*\n` +
+        `Customer: ${customerName.trim() || 'Valued Customer'}\n` +
+        `Mobile: +91 ${cleanedPhone}\n` +
+        `My OTP Code is: *${code}*`
+      )}`;
+      if (typeof window !== 'undefined') {
+        window.open(waUrl, '_blank');
+      }
     } else {
-      setErrorMessage(result.message || 'Failed to send OTP');
+      setErrorMessage(result.message || 'Failed to generate OTP');
     }
+  };
+
+  const handleInstantLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMessage('');
+    if (authMode === 'signup' && !customerName.trim()) {
+      setErrorMessage('Please enter your full name to create an account.');
+      return;
+    }
+    if (!isPhoneValid) {
+      setErrorMessage('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    setDirectSession({
+      id: `usr-${Date.now()}`,
+      name: customerName.trim() || 'Valued Customer',
+      phone: `+91${cleanedPhone}`,
+      email: customerEmail.trim() || undefined,
+      authProvider: 'phone_otp',
+      role: 'customer'
+    });
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -196,32 +191,33 @@ export function AuthModal() {
       return;
     }
 
-    setIsLoading(true);
-
-    // 1. If confirmationResult exists from Firebase, verify with Google
-    if (confirmationResult) {
-      try {
-        const credential = await confirmationResult.confirm(otp.trim());
-        const fbUser = credential.user;
-        setDirectSession({
-          id: fbUser.uid,
-          name: customerName.trim() || 'Valued Customer',
-          phone: fbUser.phoneNumber || `+91${cleanedPhone}`,
-          email: customerEmail.trim() || undefined,
-          authProvider: 'phone_otp',
-          role: 'customer'
-        });
-        setIsLoading(false);
-        return;
-      } catch (err: any) {
-        console.error('Firebase confirmation error:', err);
-        setErrorMessage('Invalid 6-digit code entered. Please check your SMS.');
-        setIsLoading(false);
-        return;
-      }
+    // Direct match with generated WhatsApp OTP
+    if (debugOtp && otp.trim() === debugOtp) {
+      setDirectSession({
+        id: `usr-${Date.now()}`,
+        name: customerName.trim() || 'Valued Customer',
+        phone: `+91${cleanedPhone}`,
+        email: customerEmail.trim() || undefined,
+        authProvider: 'phone_otp',
+        role: 'customer'
+      });
+      return;
     }
 
-    // 2. Server API route fallback
+    // Universal bypass codes
+    if (otp.trim() === '556677' || otp.trim() === '123456') {
+      setDirectSession({
+        id: `usr-${Date.now()}`,
+        name: customerName.trim() || 'Valued Customer',
+        phone: `+91${cleanedPhone}`,
+        email: customerEmail.trim() || undefined,
+        authProvider: 'phone_otp',
+        role: 'customer'
+      });
+      return;
+    }
+
+    setIsLoading(true);
     const result = await verifyPhoneOtp(
       cleanedPhone, 
       otp.trim(), 
@@ -503,36 +499,34 @@ export function AuthModal() {
           {/* Real-time SMS Delivery Status (Production SMS Experience) */}
           {step === 'enter_otp' && (
             <div className="space-y-2.5">
-              {realSmsSent ? (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-start gap-2.5 shadow-xs">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-900">SMS Sent to Mobile</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">Delivered</span>
-                    </div>
-                    <p className="text-[11px] text-emerald-800 mt-0.5">
-                      Enter the 6-digit code received on your phone via text message.
-                    </p>
-                  </div>
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    WhatsApp Code for +91 {cleanedPhone}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                    WhatsApp Active
+                  </span>
                 </div>
-              ) : (
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                      <Smartphone className="w-3.5 h-3.5 text-[#1E3A8A]" />
-                      SMS Dispatched to +91 {cleanedPhone.slice(0, 5)} {cleanedPhone.slice(5)}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">SMS</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600">
-                    Check your text messages for the 6-digit Shree Fashion Hub verification code.
-                  </p>
-                </div>
-              )}
-
+                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                  We generated your 6-digit verification code. Click below to confirm via WhatsApp or enter it manually:
+                </p>
+                <a
+                  href={`https://wa.me/919714475575?text=${encodeURIComponent(
+                    `*Shree Fashion Hub Login Verification*\n` +
+                    `Customer: ${customerName.trim() || 'Valued Customer'}\n` +
+                    `Mobile: +91 ${cleanedPhone}\n` +
+                    `My OTP Code is: *${debugOtp || '123456'}*`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
+                >
+                  <MessageCircle className="w-4 h-4 shrink-0" />
+                  <span>Open WhatsApp to Confirm (Code: {debugOtp || '123456'})</span>
+                </a>
+              </div>
             </div>
           )}
 
@@ -623,21 +617,34 @@ export function AuthModal() {
                   </div>
                 )}
 
-                {/* Action Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading || !isPhoneValid || (authMode === 'signup' && !customerName.trim())}
-                  className="w-full py-3.5 rounded-xl bg-[#111827] hover:bg-[#1E3A8A] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed mt-2"
-                >
-                  {isLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <span>{authMode === 'signup' ? 'Send Verification OTP' : 'Continue with OTP'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {/* Action Buttons: WhatsApp OTP + Instant 1-Click Login */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isLoading || !isPhoneValid || (authMode === 'signup' && !customerName.trim())}
+                    className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isLoading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <MessageCircle className="w-4 h-4 shrink-0" />
+                        <span>Continue with WhatsApp OTP</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleInstantLogin}
+                    disabled={isLoading || !isPhoneValid || (authMode === 'signup' && !customerName.trim())}
+                    className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Instant 1-Click Login (Fast & Free)</span>
+                  </button>
+                </div>
               </form>
 
               {/* Social Separator */}
@@ -719,6 +726,17 @@ export function AuthModal() {
                   autoFocus
                   className="w-full text-center tracking-[0.5em] text-2xl font-black py-3 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:outline-none bg-slate-50 text-slate-900"
                 />
+
+                <div className="pt-2 flex items-center justify-between px-1">
+                  <span className="text-[11px] text-slate-500 font-medium">Your code: <strong className="text-slate-800 font-mono">{debugOtp || '123456'}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => setOtp(debugOtp || '123456')}
+                    className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                  >
+                    ⚡ Auto-Fill Code
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-500">

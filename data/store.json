@@ -35,7 +35,7 @@
         "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=900&q=80",
         "https://images.unsplash.com/photo-1582552938357-32b906df40cb?auto=format&fit=crop&w=900&q=80"
       ],
-      "stock": 27,
+      "stock": 26,
       "isBestseller": true,
       "rating": 4.9,
       "reviewCount": 42,
@@ -296,6 +296,36 @@
     }
   ],
   "orders": [
+    {
+      "customerName": "Test Customer",
+      "customerPhone": "9714475575",
+      "customerEmail": "customer@example.com",
+      "shippingAddress": "101, Test Street, Near ISKCON Temple",
+      "city": "Ahmedabad",
+      "state": "Gujarat",
+      "pincode": "380015",
+      "items": [
+        {
+          "productId": "prod-1",
+          "title": "Midnight Raw Japanese Selvedge Jeans",
+          "size": "32",
+          "colorName": "Raw Deep Indigo",
+          "colorHex": "#0f1f38",
+          "quantity": 1,
+          "price": 2499,
+          "image": "https://images.unsplash.com/photo-1542272604-787c3835535d"
+        }
+      ],
+      "subtotal": 2499,
+      "shippingFee": 0,
+      "totalAmount": 2499,
+      "paymentMethod": "COD",
+      "status": "Confirmed",
+      "unboxingPolicyAccepted": true,
+      "id": "ord-1790689722858",
+      "orderNumber": "SFH-96297",
+      "createdAt": "2026-09-29T13:48:42.858Z"
+    },
     {
       "customerName": "Harsh Vardhan",
       "customerPhone": "+919825012345",
