@@ -485,21 +485,23 @@ export function AuthModal() {
             </div>
           )}
 
-          {/* Real-time SMS Delivery Status (Production SMS Experience) */}
+          {/* Real-time Email & SMS Delivery Status */}
           {step === 'enter_otp' && (
             <div className="space-y-2.5">
-              <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 space-y-1.5 shadow-xs">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-300 text-emerald-950 space-y-1.5 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4 text-blue-600" />
-                    SMS Dispatched to +91 {cleanedPhone}
+                  <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-emerald-600" />
+                    {customerEmail.trim() ? `OTP Dispatched to ${customerEmail.trim()}` : `OTP Sent to +91 ${cleanedPhone}`}
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                    Direct SMS
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                    Dispatched
                   </span>
                 </div>
-                <p className="text-xs text-blue-800 leading-relaxed font-medium">
-                  We have sent a 6-digit verification code to your mobile phone. Please check your SMS inbox and enter the code below:
+                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                  {customerEmail.trim()
+                    ? `Please check your email inbox at ${customerEmail.trim()} for your 6-digit verification code:`
+                    : `Please check your text messages for your 6-digit verification code:`}
                 </p>
               </div>
             </div>
@@ -573,24 +575,28 @@ export function AuthModal() {
                   )}
                 </div>
 
-                {/* Email Address Field (In Sign-Up Mode) */}
-                {authMode === 'signup' && (
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1">
-                      Email Address <span className="text-slate-400 font-normal">(for tracking & invoice)</span>
+                {/* Email Address Field (Always visible for receiving instant OTP & tracking) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
+                      Email Address {authMode === 'signup' && <span className="text-red-500">*</span>}
                     </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                      <input
-                        type="email"
-                        placeholder="name@gmail.com"
-                        value={customerEmail}
-                        onChange={e => setCustomerEmail(e.target.value)}
-                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-slate-900 bg-white"
-                      />
-                    </div>
+                    <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ✉️ Instant OTP via Email
+                    </span>
                   </div>
-                )}
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="email"
+                      placeholder="name@gmail.com"
+                      value={customerEmail}
+                      onChange={e => setCustomerEmail(e.target.value)}
+                      required={authMode === 'signup'}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-slate-900 bg-white"
+                    />
+                  </div>
+                </div>
 
                 {/* Action Buttons: Phone OTP + Instant 1-Click Login */}
                 <div className="space-y-2 pt-1">
