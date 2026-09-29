@@ -15,7 +15,7 @@ export async function sendRealPhoneOtp(phone: string, otp: string): Promise<Send
   const digits = phone.replace(/\D/g, '').slice(-10);
 
   // 1. Check for Fast2SMS (Recommended for India)
-  const fast2SmsKey = process.env.FAST2SMS_API_KEY;
+  const fast2SmsKey = process.env.FAST2SMS_API_KEY || '2LsZBkaiWR3rfUA6pXlGcSvJ9nw8IydhzT5bg17ueqxNCKEm0o94Ag7k5Zup3cY1SRv0lw6XQBjWrUta';
   if (fast2SmsKey) {
     try {
       const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
@@ -33,14 +33,20 @@ export async function sendRealPhoneOtp(phone: string, otp: string): Promise<Send
 
       const data = await response.json();
       if (data.return) {
-        console.log(`[REAL SMS SENT via Fast2SMS] Mobile: ${digits} | OTP: ${otp}`);
+        console.log(`[REAL SMS DELIVERED via Fast2SMS] Mobile: ${digits} | OTP: ${otp}`);
         return {
           success: true,
           provider: 'Fast2SMS',
-          message: `SMS successfully delivered to +91 ${digits}`
+          message: `Real SMS successfully delivered to +91 ${digits}`
         };
       } else {
-        console.error('[Fast2SMS Error]', data);
+        console.warn('[Fast2SMS API Response]', data);
+        const errorMsg = data.message || 'Fast2SMS verification needed';
+        return {
+          success: false,
+          provider: 'Fast2SMS',
+          message: errorMsg
+        };
       }
     } catch (err) {
       console.error('[Fast2SMS Network Error]', err);
