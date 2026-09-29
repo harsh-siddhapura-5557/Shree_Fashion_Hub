@@ -75,6 +75,7 @@ export interface Order {
   shippingFee: number;
   totalAmount: number;
   paymentMethod: 'COD' | 'UPI / Online';
+  upiTransactionId?: string;
   status: 'Pending' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
   unboxingPolicyAccepted: boolean;
   createdAt: string;

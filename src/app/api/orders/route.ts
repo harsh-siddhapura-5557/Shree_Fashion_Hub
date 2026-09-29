@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
       shippingFee: 0, // All India Free Shipping
       totalAmount: calculatedSubtotal,
       paymentMethod: paymentMethod === 'UPI / Online' ? 'UPI / Online' : 'COD',
+      upiTransactionId: paymentMethod === 'UPI / Online' && body.upiTransactionId ? sanitizeString(body.upiTransactionId) : undefined,
       status: 'Confirmed',
       unboxingPolicyAccepted: true
     });
